@@ -10,25 +10,9 @@
 		BDFD2FC52F57C54B00A7561D /* Retro Rink.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Retro Rink.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		BDFD2FD62F57C54B00A7561D /* Exceptions for "Retro Rink Shared" folder in "Retro Rink iOS" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Actions.sks,
-				Assets.xcassets,
-				GameScene.sks,
-				GameScene.swift,
-			);
-			target = BDFD2FC42F57C54B00A7561D /* Retro Rink iOS */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		BDFD2FBC2F57C54A00A7561D /* Retro Rink Shared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				BDFD2FD62F57C54B00A7561D /* Exceptions for "Retro Rink Shared" folder in "Retro Rink iOS" target */,
-			);
 			path = "Retro Rink Shared";
 			sourceTree = "<group>";
 		};
@@ -83,6 +67,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				BDFD2FBC2F57C54A00A7561D /* Retro Rink Shared */,
 				BDFD2FC72F57C54B00A7561D /* Retro Rink iOS */,
 			);
 			name = "Retro Rink iOS";

@@ -1,39 +1,27 @@
-//
-//  GameViewController.swift
-//  Retro Rink iOS
-//
-//  Created by Campbell Dalen on 3/3/26.
-//
-
 import UIKit
 import SpriteKit
-import GameplayKit
 
 class GameViewController: UIViewController {
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        let scene = GameScene.newGameScene()
 
-        // Present the scene
-        let skView = self.view as! SKView
+        let skView = SKView(frame: view.bounds)
+        skView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(skView)
+
+        // Present the main menu
+        let scene = BaseScene.create(MainMenuScene.self, in: skView)
         skView.presentScene(scene)
-        
-        skView.ignoresSiblingOrder = true
+
+        #if DEBUG
         skView.showsFPS = true
         skView.showsNodeCount = true
+        #endif
+
+        skView.ignoresSiblingOrder = true
     }
 
-    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        if UIDevice.current.userInterfaceIdiom == .phone {
-            return .allButUpsideDown
-        } else {
-            return .all
-        }
-    }
-
-    override var prefersStatusBarHidden: Bool {
-        return true
-    }
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
+    override var prefersStatusBarHidden: Bool { true }
+    override var prefersHomeIndicatorAutoHidden: Bool { true }
 }
