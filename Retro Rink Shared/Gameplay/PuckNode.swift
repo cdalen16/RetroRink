@@ -47,6 +47,7 @@ class PuckNode: SKNode {
         body.restitution = 0.7
         body.friction = 0.2
         body.allowsRotation = true
+        body.usesPreciseCollisionDetection = true  // prevents fast puck from tunneling through goalie
         self.physicsBody = body
 
         setupTrailDots()
@@ -71,8 +72,14 @@ class PuckNode: SKNode {
 
     // MARK: - Carrier Management
     func attachTo(_ skater: SkaterNode) {
+        // Restore previous carrier's puck collision
+        if let prev = carriedBy {
+            prev.physicsBody?.collisionBitMask |= PhysicsCategory.puck
+        }
         carriedBy = skater
         skater.hasPuck = true
+        // Disable puck collision for the carrier so they can move freely
+        skater.physicsBody?.collisionBitMask &= ~PhysicsCategory.puck
         physicsBody?.velocity = .zero
         physicsBody?.isDynamic = false
         hasBeenShot = false
@@ -85,6 +92,8 @@ class PuckNode: SKNode {
     }
 
     func detach() {
+        // Restore carrier's puck collision
+        carriedBy?.physicsBody?.collisionBitMask |= PhysicsCategory.puck
         carriedBy?.hasPuck = false
         carriedBy = nil
         physicsBody?.isDynamic = true

@@ -743,70 +743,13 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         }
     }
 
-    // MARK: - Shot Resolution (called every frame when puck.hasBeenShot)
+    // MARK: - Shot Resolution (physics-based: goals/saves handled by contact delegate)
     private func resolveShotInUpdate() {
-        let goalMouth = attackingRight ? rink.rightGoalMouth : rink.leftGoalMouth
-        let goalWidth = GameConfig.goalWidth
-        let goalDepth = GameConfig.goalDepth
-
-        // Check if puck is near the goal mouth
-        let puckPos = puck.position
-        let dx = abs(puckPos.x - goalMouth.x)
-        let dy = abs(puckPos.y - goalMouth.y)
-
-        if dx < goalDepth && dy < goalWidth / 2 {
-            // Puck is in the goal area -- resolve shot
+        // Shot timed out (went wide, slowed down, or missed everything)
+        if puck.timeSinceShot > 2.5 {
             puck.hasBeenShot = false
-
-            let carrier = selectedSkater
-            let shooterStats = carrier?.playerStats ?? playerSkaters.first?.playerStats
-            guard let stats = shooterStats else { return }
-
-            let accuracyFactor = CGFloat(stats.shooting) / 99.0
-            let puckSpeed = hypot(puck.physicsBody?.velocity.dx ?? 0, puck.physicsBody?.velocity.dy ?? 0)
-
-            // On target check
-            let onTarget = Double.random(in: 0...1) < Double(accuracyFactor) * 0.7 + 0.3
-
-            if onTarget {
-                let goalie = opponentSkaters.first { $0.posType.isGoalie }
-                let saved = goalie.map { g in
-                    // Factor in goalie's actual distance from puck
-                    let distToPuck = g.position.distance(to: puckPos)
-                    let positionPenalty = min(distToPuck / 100.0, 0.3) // up to 30% penalty for being out of position
-                    let baseSave = ai.attemptSave(
-                        goalie: g,
-                        shotPower: puckSpeed,
-                        shotAccuracy: accuracyFactor,
-                        shooterStats: stats
-                    )
-                    // If goalie is far from puck, reduce save chance
-                    if !baseSave { return false }
-                    return Double.random(in: 0...1) > Double(positionPenalty)
-                } ?? false
-
-                if saved {
-                    showMessage("SAVED!", duration: 1.0) { [weak self] in
-                        self?.puck.resetToCenter()
-                        self?.startSimulation()
-                    }
-                } else {
-                    handleGoalScored(byPlayerTeam: true)
-                }
-            } else {
-                let missMsgs = ["Wide!", "Off the post!", "Just missed!", "High and wide!"]
-                showMessage(missMsgs.randomElement()!, duration: 1.0) { [weak self] in
-                    self?.puck.resetToCenter()
-                    self?.startSimulation()
-                }
-            }
-            return
-        }
-
-        // Shot timed out (went wide / hit boards)
-        if puck.timeSinceShot > 2.0 {
-            puck.hasBeenShot = false
-            showMessage("Shot missed!", duration: 0.8) { [weak self] in
+            let missMsgs = ["Wide!", "Shot missed!", "Off the post!", "High and wide!"]
+            showMessage(missMsgs.randomElement()!, duration: 0.8) { [weak self] in
                 self?.puck.resetToCenter()
                 self?.startSimulation()
             }
@@ -1207,32 +1150,103 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         let a = contact.bodyA.categoryBitMask
         let b = contact.bodyB.categoryBitMask
 
-        // Puck hits boards while shot -> turnover
+        guard gameState == .playerOffense else { return }
+
+        // Puck hits boards while shot -> miss
         if puck.hasBeenShot {
             if (a == PhysicsCategory.puck && b == PhysicsCategory.boards) ||
                (a == PhysicsCategory.boards && b == PhysicsCategory.puck) {
-                // Board contact during shot: treat as miss
                 puck.hasBeenShot = false
-                if gameState == .playerOffense {
-                    showMessage("Off the boards!", duration: 0.8) { [weak self] in
-                        self?.puck.resetToCenter()
-                        self?.startSimulation()
-                    }
+                showMessage("Off the boards!", duration: 0.8) { [weak self] in
+                    self?.puck.resetToCenter()
+                    self?.startSimulation()
                 }
                 return
             }
         }
 
-        // Puck hits goal trigger zone
+        // Puck hits a skater while shot -> check if it's the goalie
+        if puck.hasBeenShot {
+            if (a == PhysicsCategory.puck && b == PhysicsCategory.skater) ||
+               (a == PhysicsCategory.skater && b == PhysicsCategory.puck) {
+                let skaterNode = a == PhysicsCategory.skater ? contact.bodyA.node : contact.bodyB.node
+                if let skater = skaterNode as? SkaterNode, skater.posType.isGoalie,
+                   skater.teamIndex != (isPlayerHome ? 0 : 1) {
+                    // Puck hit the opposing goalie!
+                    let puckSpeed = hypot(puck.physicsBody?.velocity.dx ?? 0, puck.physicsBody?.velocity.dy ?? 0)
+                    let goalieReflexes = Double(skater.playerStats.reflexes) / 99.0
+
+                    // Small chance the puck trickles through (harder shot + worse goalie = higher chance)
+                    let trickleChance = 0.08 + (puckSpeed / Double(GameConfig.shotSpeedMax)) * 0.07 - goalieReflexes * 0.05
+                    if Double.random(in: 0...1) < trickleChance {
+                        // Puck squeaks through! Let physics continue — goal contact will trigger
+                        return
+                    }
+
+                    // Save! Stop the puck so it doesn't bounce endlessly
+                    puck.hasBeenShot = false
+                    puck.physicsBody?.velocity = .zero
+                    puck.physicsBody?.isDynamic = false
+                    let saveMsgs = ["SAVED!", "Great save!", "Glove save!", "Pad save!"]
+                    showMessage(saveMsgs.randomElement()!, duration: 0.8) { [weak self] in
+                        self?.puck.physicsBody?.isDynamic = true
+                        self?.puck.resetToCenter()
+                        self?.startSimulation()
+                    }
+                    return
+                }
+            }
+        }
+
+        // Puck hits goal trigger zone -> GOAL
         if (a == PhysicsCategory.puck && b == PhysicsCategory.goal) ||
            (a == PhysicsCategory.goal && b == PhysicsCategory.puck) {
             let goalNode = a == PhysicsCategory.goal ? contact.bodyA.node : contact.bodyB.node
 
-            if gameState == .playerOffense {
-                if (goalNode?.name == "rightGoal" && attackingRight) ||
-                   (goalNode?.name == "leftGoal" && !attackingRight) {
-                    puck.hasBeenShot = false
-                    handleGoalScored(byPlayerTeam: true)
+            if (goalNode?.name == "rightGoal" && attackingRight) ||
+               (goalNode?.name == "leftGoal" && !attackingRight) {
+                puck.hasBeenShot = false
+                handleGoalScored(byPlayerTeam: true)
+            }
+            return
+        }
+
+        // Loose puck hits a non-goalie skater -> that skater picks it up
+        if puck.isLoose && !puck.hasBeenShot && !puck.isPass {
+            if (a == PhysicsCategory.puck && b == PhysicsCategory.skater) ||
+               (a == PhysicsCategory.skater && b == PhysicsCategory.puck) {
+                let skaterNode = a == PhysicsCategory.skater ? contact.bodyA.node : contact.bodyB.node
+                guard let skater = skaterNode as? SkaterNode, !skater.posType.isGoalie else { return }
+
+                // Cancel any pending save/miss message actions
+                messageLabel.removeAllActions()
+                messageLabel.alpha = 0
+
+                let playerTeamIndex = isPlayerHome ? 0 : 1
+
+                if skater.teamIndex == playerTeamIndex {
+                    // Player's team recovers the puck
+                    puck.attachTo(skater)
+                    isLoosePuck = false
+                    loosePuckTimer = 0
+                    skater.isSelected = true
+                    selectedSkater = skater
+                    puckProtectionTimer = 1.0
+
+                    for s in playerSkaters { s.hidePassTarget() }
+                    for s in playerSkaters where !s.posType.isGoalie && !s.hasPuck {
+                        s.showPassTarget()
+                    }
+                    showMessage("RECOVERED!", duration: 0.5)
+                } else {
+                    // Opponent picks up the puck — turnover
+                    puck.attachTo(skater)
+                    isLoosePuck = false
+                    loosePuckTimer = 0
+                    showMessage("TURNOVER!", duration: 0.8) { [weak self] in
+                        self?.puck.resetToCenter()
+                        self?.startSimulation()
+                    }
                 }
             }
         }

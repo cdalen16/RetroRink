@@ -121,14 +121,15 @@ class SkaterNode: SKNode {
         addChild(puckDot)
         puckIndicator = puckDot
 
-        // Physics body
-        let body = SKPhysicsBody(circleOfRadius: GameConfig.skaterRadius)
+        // Physics body — goalies get a wider body and collide with puck to block shots
+        let bodyRadius = player.position.isGoalie ? GameConfig.skaterRadius * 1.5 : GameConfig.skaterRadius
+        let body = SKPhysicsBody(circleOfRadius: bodyRadius)
         body.categoryBitMask = PhysicsCategory.skater
         body.contactTestBitMask = PhysicsCategory.puck | PhysicsCategory.skater
-        body.collisionBitMask = PhysicsCategory.boards | PhysicsCategory.skater
+        body.collisionBitMask = PhysicsCategory.boards | PhysicsCategory.skater | PhysicsCategory.puck
         body.linearDamping = 3.0
         body.angularDamping = 5.0
-        body.mass = 0.5
+        body.mass = player.position.isGoalie ? 2.0 : 0.5
         body.allowsRotation = false
         self.physicsBody = body
     }
