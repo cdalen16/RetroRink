@@ -18,8 +18,15 @@ class PuckNode: SKNode {
     var hasBeenShot: Bool = false
     var timeSinceShot: TimeInterval = 0
     private var shotPower: CGFloat = 0
-    private var shotAccuracy: CGFloat = 0
-    private var shooterStats: Player?
+
+    // Pass tracking (for proximity-based arrival in update loop)
+    var isPass: Bool = false
+    var passTargetID: UUID?
+    var timeSincePass: TimeInterval = 0
+    private let passArrivalRadius: CGFloat = 20
+    private let passTimeout: TimeInterval = 2.0
+    private let normalDamping: CGFloat = 1.5
+    private let passDamping: CGFloat = 0.3
 
     // MARK: - Init
     override init() {
@@ -71,6 +78,7 @@ class PuckNode: SKNode {
         hasBeenShot = false
         timeSinceShot = 0
         shotPower = 0
+        clearPassState()
 
         // Hide trail when carried
         for dot in trailDots { dot.isHidden = true }
@@ -90,9 +98,9 @@ class PuckNode: SKNode {
         let directionMultiplier: CGFloat = carrier.physicsBody?.velocity.dx ?? 0 >= 0 ? 1 : -1
         let offsetX: CGFloat
         if abs(carrier.physicsBody?.velocity.dx ?? 0) > 10 {
-            offsetX = directionMultiplier * 14
+            offsetX = directionMultiplier * 10
         } else {
-            offsetX = carrier.teamIndex == 0 ? 14 : -14
+            offsetX = carrier.teamIndex == 0 ? 10 : -10
         }
         self.position = CGPoint(x: carrier.position.x + offsetX, y: carrier.position.y - 2)
     }
@@ -175,7 +183,7 @@ class PuckNode: SKNode {
         for i in 0..<trailCount { trailPositions[i] = self.position }
     }
 
-    func pass(toward target: CGPoint) {
+    func pass(toward target: CGPoint, targetID: UUID) {
         detach()
 
         let dx = target.x - position.x
@@ -189,11 +197,49 @@ class PuckNode: SKNode {
 
         physicsBody?.velocity = CGVector(dx: vx, dy: vy)
 
-        // Not a shot -- keep hasBeenShot false
+        // Reduce damping so puck actually travels visibly
+        physicsBody?.linearDamping = passDamping
+
+        // Mark as pass for proximity-based arrival in update()
+        isPass = true
+        passTargetID = targetID
+        timeSincePass = 0
         hasBeenShot = false
 
         // Reset trail positions
         for i in 0..<trailCount { trailPositions[i] = self.position }
+    }
+
+    /// Check if the puck has arrived at the pass target. Returns the target skater if arrived.
+    func checkPassArrival(skaters: [SkaterNode]) -> SkaterNode? {
+        guard isPass, let targetID = passTargetID else { return nil }
+
+        // Find target skater
+        guard let target = skaters.first(where: { $0.playerID == targetID }) else {
+            clearPassState()
+            return nil
+        }
+
+        let dist = position.distance(to: target.position)
+        if dist <= passArrivalRadius {
+            clearPassState()
+            return target
+        }
+
+        // Timeout — treat as loose puck
+        if timeSincePass >= passTimeout {
+            clearPassState()
+            return nil
+        }
+
+        return nil
+    }
+
+    func clearPassState() {
+        isPass = false
+        passTargetID = nil
+        timeSincePass = 0
+        physicsBody?.linearDamping = normalDamping
     }
 
     // MARK: - Goal Effect
@@ -214,6 +260,7 @@ class PuckNode: SKNode {
     // MARK: - Reset
     func resetToCenter() {
         detach()
+        clearPassState()
         position = .zero
         physicsBody?.velocity = .zero
         hasBeenShot = false
@@ -227,6 +274,9 @@ class PuckNode: SKNode {
     func update(dt: TimeInterval) {
         if hasBeenShot {
             timeSinceShot += dt
+        }
+        if isPass {
+            timeSincePass += dt
         }
         if isLoose {
             updateTrail()

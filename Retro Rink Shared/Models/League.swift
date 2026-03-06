@@ -213,7 +213,15 @@ struct League: Codable {
     // MARK: - Standings
     var standings: [StandingsEntry] {
         teams.enumerated().map { index, team in
-            StandingsEntry(
+            // Compute goals against from completed schedule results
+            let ga = schedule.compactMap { game -> Int? in
+                guard let result = game.result else { return nil }
+                if game.homeTeamIndex == index { return result.awayScore }
+                if game.awayTeamIndex == index { return result.homeScore }
+                return nil
+            }.reduce(0, +)
+
+            return StandingsEntry(
                 teamIndex: index,
                 teamName: team.fullName,
                 abbreviation: team.abbreviation,
@@ -222,7 +230,7 @@ struct League: Codable {
                 otLosses: team.overtimeLosses,
                 points: team.points,
                 goalsFor: team.roster.reduce(0) { $0 + $1.seasonGoals },
-                goalsAgainst: 0
+                goalsAgainst: ga
             )
         }.sorted { $0.points > $1.points }
     }

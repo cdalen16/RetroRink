@@ -59,10 +59,12 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
     // MARK: - Joystick HUD Nodes
     private var joystickBase: SKShapeNode!
     private var joystickThumb: SKShapeNode!
-    private var joystickCenter: CGPoint = .zero  // position in HUD coords
+    private var joystickCenter: CGPoint = .zero  // default position in HUD coords
+    private var joystickOrigin: CGPoint = .zero   // dynamic origin where touch began
 
     // MARK: - Camera
     private var cameraShakeTimer: TimeInterval = 0
+    private var cameraShakeDuration: TimeInterval = 0
     private var cameraShakeIntensity: CGFloat = 0
     private var celebrationZoom: Bool = false
 
@@ -86,6 +88,11 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         backgroundColor = UIColor(hex: "111122")
         super.didMove(to: view)
 
+        // Zoom in by reducing scene size — shows less of the world
+        // Camera stays at scale 1.0 so HUD children render at normal size
+        let zoomFactor = CameraConfig.scale
+        self.size = CGSize(width: size.width * zoomFactor, height: size.height * zoomFactor)
+
         view.isMultipleTouchEnabled = true
         isUserInteractionEnabled = true
 
@@ -105,7 +112,8 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
     // MARK: - Camera Setup
     private func setupCamera() {
         cameraNode = SKCameraNode()
-        cameraNode.setScale(CameraConfig.scale)
+        // Don't scale the camera — scale is handled via scene size vs rink size
+        // Camera stays at scale 1.0 so HUD children render at normal size
         addChild(cameraNode)
         camera = cameraNode
     }
@@ -177,9 +185,9 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         hudNode.zPosition = ZPos.hud
         cameraNode.addChild(hudNode)
 
-        // Visible area: scene size / camera scale
-        let visW = size.width / CameraConfig.scale
-        let visH = size.height / CameraConfig.scale
+        // Camera is at scale 1.0, so HUD coords = screen coords = scene size
+        let visW = size.width
+        let visH = size.height
         let topY = visH / 2
 
         // Score box background
@@ -603,6 +611,30 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
                 puckProtectionTimer -= dt
             }
 
+            // ------- Pass arrival detection -------
+            if puck.isPass {
+                let allSkaters = playerSkaters + opponentSkaters
+                if let receiver = puck.checkPassArrival(skaters: allSkaters) {
+                    // Pass arrived — attach puck to receiver
+                    puck.attachTo(receiver)
+                    receiver.isSelected = true
+                    selectedSkater = receiver
+                    puckProtectionTimer = 0.8
+
+                    // Refresh pass targets
+                    for skater in playerSkaters { skater.hidePassTarget() }
+                    for skater in playerSkaters where !skater.posType.isGoalie && !skater.hasPuck {
+                        skater.showPassTarget()
+                    }
+                } else if !puck.isPass {
+                    // Pass timed out — treat as loose puck
+                    isLoosePuck = true
+                    loosePuckTimer = loosePuckRecoveryWindow
+                    for s in playerSkaters { s.hidePassTarget() }
+                    showMessage("BAD PASS!", duration: 0.6)
+                }
+            }
+
             // ------- Loose puck recovery -------
             if isLoosePuck {
                 loosePuckTimer -= dt
@@ -739,12 +771,18 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             if onTarget {
                 let goalie = opponentSkaters.first { $0.posType.isGoalie }
                 let saved = goalie.map { g in
-                    ai.attemptSave(
+                    // Factor in goalie's actual distance from puck
+                    let distToPuck = g.position.distance(to: puckPos)
+                    let positionPenalty = min(distToPuck / 100.0, 0.3) // up to 30% penalty for being out of position
+                    let baseSave = ai.attemptSave(
                         goalie: g,
                         shotPower: puckSpeed,
                         shotAccuracy: accuracyFactor,
                         shooterStats: stats
                     )
+                    // If goalie is far from puck, reduce save chance
+                    if !baseSave { return false }
+                    return Double.random(in: 0...1) > Double(positionPenalty)
                 } ?? false
 
                 if saved {
@@ -811,9 +849,9 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         camPos.y += (targetPos.y - camPos.y) * lerpFactor
 
         // Clamp camera to rink bounds so edges don't go past screen edges
-        let camScale = cameraNode.xScale
-        let visW = size.width / camScale / 2
-        let visH = size.height / camScale / 2
+        // Camera at scale 1.0 — visible area = scene size
+        let visW = size.width / 2
+        let visH = size.height / 2
         let rinkHW = rink.rinkWidth / 2
         let rinkHH = rink.rinkHeight / 2
         let pad = CameraConfig.boundsPadding
@@ -834,14 +872,17 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             camPos.y = 0
         }
 
-        // Apply camera shake
+        // Apply camera shake (normalized decay: strongest at start, fades to zero)
         if cameraShakeTimer > 0 {
             cameraShakeTimer -= dt
-            let t = CGFloat(cameraShakeTimer) // decaying
-            let shakeX = CGFloat.random(in: -cameraShakeIntensity...cameraShakeIntensity) * t
-            let shakeY = CGFloat.random(in: -cameraShakeIntensity...cameraShakeIntensity) * t
-            camPos.x += shakeX
-            camPos.y += shakeY
+            let fraction = cameraShakeDuration > 0 ? max(0, CGFloat(cameraShakeTimer / cameraShakeDuration)) : 0
+            let magnitude = cameraShakeIntensity * fraction
+            if magnitude > 0 {
+                let shakeX = CGFloat.random(in: -magnitude...magnitude)
+                let shakeY = CGFloat.random(in: -magnitude...magnitude)
+                camPos.x += shakeX
+                camPos.y += shakeY
+            }
         }
 
         cameraNode.position = camPos
@@ -854,13 +895,14 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
 
     private func startCameraShake(intensity: CGFloat, duration: TimeInterval) {
         cameraShakeIntensity = intensity
+        cameraShakeDuration = duration
         cameraShakeTimer = duration
     }
 
     private func startCelebrationZoom() {
         celebrationZoom = true
-        let zoomOut = SKAction.scale(to: 2.2, duration: 0.5)
-        let zoomBack = SKAction.scale(to: CameraConfig.scale, duration: 0.8)
+        let zoomOut = SKAction.scale(to: 1.3, duration: 0.5)
+        let zoomBack = SKAction.scale(to: 1.0, duration: 0.8)
         zoomOut.timingMode = .easeOut
         zoomBack.timingMode = .easeInEaseOut
         cameraNode.run(SKAction.sequence([zoomOut, zoomBack])) { [weak self] in
@@ -872,18 +914,18 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
     // MARK: - TOUCH CONTROLS (Two-Hand: Joystick + Action)
     // =========================================================================
 
-    /// Determine if a touch is in the joystick zone (left side of visible area)
+    /// Determine if a touch is in the joystick zone (left half of screen)
     private func isJoystickTouch(_ touch: UITouch) -> Bool {
         let loc = touch.location(in: self)
-        let hudLoc = cameraNode.convert(loc, from: self)
-        let dist = hudLoc.distance(to: joystickCenter)
-        return dist < JoystickConfig.activateRadius
+        let hudLoc = hudNode.convert(loc, from: self)
+        return hudLoc.x < 0  // left half of screen
     }
 
     /// Reset all touch tracking
     private func resetAllTouches() {
         joystickTouch = nil
         joystickDisplacement = .zero
+        joystickBase.position = joystickCenter
         joystickThumb.position = joystickCenter
         actionTouch = nil
         actionTouchState = .none
@@ -899,9 +941,15 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
 
             guard gameState == .playerOffense else { return }
 
-            // --- Joystick touch ---
+            // --- Joystick touch (any left-side touch) ---
             if joystickTouch == nil && isJoystickTouch(touch) {
                 joystickTouch = touch
+                let loc = touch.location(in: self)
+                let hudLoc = hudNode.convert(loc, from: self)
+                joystickOrigin = hudLoc
+                // Move joystick visual to where the user touched
+                joystickBase.position = hudLoc
+                joystickThumb.position = hudLoc
                 continue
             }
 
@@ -933,24 +981,24 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             // --- Joystick moved ---
             if touch === joystickTouch {
                 let loc = touch.location(in: self)
-                let hudLoc = cameraNode.convert(loc, from: self)
-                let dx = hudLoc.x - joystickCenter.x
-                let dy = hudLoc.y - joystickCenter.y
+                let hudLoc = hudNode.convert(loc, from: self)
+                let dx = hudLoc.x - joystickOrigin.x
+                let dy = hudLoc.y - joystickOrigin.y
                 let dist = hypot(dx, dy)
 
                 let maxR = JoystickConfig.baseRadius
 
                 if dist < JoystickConfig.deadzone {
                     joystickDisplacement = .zero
-                    joystickThumb.position = joystickCenter
+                    joystickThumb.position = joystickOrigin
                 } else {
                     // Clamp thumb to base radius
                     let clampedDist = min(dist, maxR)
                     let nx = dx / dist
                     let ny = dy / dist
                     joystickThumb.position = CGPoint(
-                        x: joystickCenter.x + nx * clampedDist,
-                        y: joystickCenter.y + ny * clampedDist
+                        x: joystickOrigin.x + nx * clampedDist,
+                        y: joystickOrigin.y + ny * clampedDist
                     )
                     // Normalized displacement (0..1 magnitude)
                     let magnitude = clampedDist / maxR
@@ -969,6 +1017,8 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             if touch === joystickTouch {
                 joystickTouch = nil
                 joystickDisplacement = .zero
+                // Return joystick visual to default position
+                joystickBase.position = joystickCenter
                 joystickThumb.position = joystickCenter
                 continue
             }
@@ -1029,6 +1079,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             if touch === joystickTouch {
                 joystickTouch = nil
                 joystickDisplacement = .zero
+                joystickBase.position = joystickCenter
                 joystickThumb.position = joystickCenter
             }
             if touch === actionTouch {
@@ -1052,8 +1103,6 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         let passAccuracy = Double(carrier.playerStats.passing) / 99.0
         let passChance = 0.6 + passAccuracy * 0.35
 
-        puck.pass(toward: target.position)
-
         // Check if pass is intercepted by any defender near the passing lane
         let midpoint = CGPoint(
             x: (carrier.position.x + target.position.x) / 2,
@@ -1063,9 +1112,10 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             let defDist = defender.position.distance(to: midpoint)
             if defDist < 25 && Double.random(in: 0...1) > passChance {
                 // Intercepted — puck goes loose with recovery chance
+                puck.pass(toward: midpoint, targetID: target.playerID)
                 run(SKAction.wait(forDuration: 0.3)) { [weak self] in
                     guard let self = self, self.gameState == .playerOffense else { return }
-                    self.puck.detach()
+                    self.puck.clearPassState()
                     self.isLoosePuck = true
                     self.loosePuckTimer = self.loosePuckRecoveryWindow
                     for s in self.playerSkaters { s.hidePassTarget() }
@@ -1075,23 +1125,8 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             }
         }
 
-        // Successful pass: attach puck to target after travel time (via SKAction)
-        let distance = carrier.position.distance(to: target.position)
-        let travelTime = Double(distance / GameConfig.passSpeed)
-
-        run(SKAction.wait(forDuration: travelTime)) { [weak self] in
-            guard let self = self, self.gameState == .playerOffense else { return }
-            self.puck.attachTo(target)
-            target.isSelected = true
-            self.selectedSkater = target
-            self.puckProtectionTimer = 0.8  // brief protection after receiving pass
-
-            // Refresh pass targets
-            for skater in self.playerSkaters { skater.hidePassTarget() }
-            for skater in self.playerSkaters where !skater.posType.isGoalie && !skater.hasPuck {
-                skater.showPassTarget()
-            }
-        }
+        // Successful pass: puck travels physically, arrival detected in update()
+        puck.pass(toward: target.position, targetID: target.playerID)
     }
 
     private func performShot(toward target: CGPoint, power: CGFloat) {
@@ -1274,17 +1309,26 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
     private func showTutorialOverlay() {
         guard tutorialOverlay == nil else { return }
 
-        let visW = size.width / CameraConfig.scale
-        let visH = size.height / CameraConfig.scale
+        let visW = size.width
+        let visH = size.height
 
         let overlay = SKNode()
         overlay.zPosition = ZPos.overlay + 5
 
-        // Semi-transparent dark backdrop
-        let backdrop = SKSpriteNode(color: UIColor.black.withAlphaComponent(0.75),
-                                     size: CGSize(width: visW + 20, height: visH + 20))
+        // Semi-transparent dark backdrop (sized to panel, not full screen)
+        let panelW: CGFloat = min(visW * 0.85, 420)
+        let panelH: CGFloat = 160
+        let backdrop = SKSpriteNode(color: UIColor.black.withAlphaComponent(0.85),
+                                     size: CGSize(width: panelW, height: panelH))
         backdrop.position = .zero
         overlay.addChild(backdrop)
+
+        // Border
+        let border = SKShapeNode(rectOf: CGSize(width: panelW, height: panelH))
+        border.strokeColor = RetroPalette.gold.withAlphaComponent(0.5)
+        border.lineWidth = 1
+        border.fillColor = .clear
+        overlay.addChild(border)
 
         // Title
         let title = RetroFont.label("CONTROLS", size: RetroFont.headerSize, color: RetroPalette.gold)
@@ -1292,12 +1336,13 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         overlay.addChild(title)
 
         // Left hand section
+        let colL: CGFloat = -90
         let leftTitle = RetroFont.label("LEFT THUMB", size: RetroFont.smallSize, color: RetroPalette.textYellow)
-        leftTitle.position = CGPoint(x: -visW / 4, y: 25)
+        leftTitle.position = CGPoint(x: colL, y: 50)
         overlay.addChild(leftTitle)
 
-        let joyInstr = RetroFont.label("Joystick = Skate", size: RetroFont.bodySize, color: .white)
-        joyInstr.position = CGPoint(x: -visW / 4, y: 5)
+        let joyInstr = RetroFont.label("Drag = Skate", size: RetroFont.bodySize, color: .white)
+        joyInstr.position = CGPoint(x: colL, y: 30)
         overlay.addChild(joyInstr)
 
         // Draw a mini joystick icon
@@ -1305,35 +1350,36 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         miniBase.fillColor = UIColor.white.withAlphaComponent(0.1)
         miniBase.strokeColor = UIColor.white.withAlphaComponent(0.4)
         miniBase.lineWidth = 1.5
-        miniBase.position = CGPoint(x: -visW / 4, y: -22)
+        miniBase.position = CGPoint(x: colL, y: 2)
         overlay.addChild(miniBase)
 
         let miniThumb = SKShapeNode(circleOfRadius: 7)
         miniThumb.fillColor = UIColor.white.withAlphaComponent(0.5)
         miniThumb.strokeColor = UIColor.white.withAlphaComponent(0.8)
-        miniThumb.position = CGPoint(x: -visW / 4 + 8, y: -18)
+        miniThumb.position = CGPoint(x: colL + 8, y: 6)
         overlay.addChild(miniThumb)
 
         // Right hand section
+        let colR: CGFloat = 90
         let rightTitle = RetroFont.label("RIGHT HAND", size: RetroFont.smallSize, color: RetroPalette.textYellow)
-        rightTitle.position = CGPoint(x: visW / 4, y: 25)
+        rightTitle.position = CGPoint(x: colR, y: 50)
         overlay.addChild(rightTitle)
 
         let tapInstr = RetroFont.label("Tap Player = Pass", size: RetroFont.bodySize, color: RetroPalette.textGreen)
-        tapInstr.position = CGPoint(x: visW / 4, y: 5)
+        tapInstr.position = CGPoint(x: colR, y: 30)
         overlay.addChild(tapInstr)
 
-        let shootInstr = RetroFont.label("Swipe Right = Shoot!", size: RetroFont.bodySize, color: RetroPalette.gold)
-        shootInstr.position = CGPoint(x: visW / 4, y: -15)
+        let shootInstr = RetroFont.label("Swipe = Shoot!", size: RetroFont.bodySize, color: RetroPalette.gold)
+        shootInstr.position = CGPoint(x: colR, y: 10)
         overlay.addChild(shootInstr)
 
         let dekeInstr = RetroFont.label("Swipe Up/Down = Deke", size: RetroFont.bodySize, color: .white)
-        dekeInstr.position = CGPoint(x: visW / 4, y: -35)
+        dekeInstr.position = CGPoint(x: colR, y: -10)
         overlay.addChild(dekeInstr)
 
         // "Tap to start" label
         let tapStart = RetroFont.label("TAP ANYWHERE TO PLAY", size: RetroFont.smallSize, color: RetroPalette.textGray)
-        tapStart.position = CGPoint(x: 0, y: -65)
+        tapStart.position = CGPoint(x: 0, y: -40)
         overlay.addChild(tapStart)
 
         let blink = SKAction.repeatForever(SKAction.sequence([

@@ -204,6 +204,7 @@ struct GameSimulator {
 
     // MARK: - Stat Recording
     static func recordStats(result: GameResult, home: inout Team, away: inout Team) {
+        // Record goals and assists (without touching gamesPlayed)
         for event in result.scorers {
             let team: Int = event.teamIndex
             let roster = team == 0 ? home.roster : away.roster
@@ -211,10 +212,8 @@ struct GameSimulator {
             if let scorerIdx = roster.firstIndex(where: { $0.id == event.scorerID }) {
                 if team == 0 {
                     home.roster[scorerIdx].seasonGoals += 1
-                    home.roster[scorerIdx].seasonGamesPlayed += 1
                 } else {
                     away.roster[scorerIdx].seasonGoals += 1
-                    away.roster[scorerIdx].seasonGamesPlayed += 1
                 }
             }
 
@@ -229,25 +228,38 @@ struct GameSimulator {
             }
         }
 
-        // Record games played for all healthy players
+        // Record games played for all healthy players (unconditional +1)
         for i in home.roster.indices where !home.roster[i].isInjured {
-            if home.roster[i].seasonGamesPlayed == 0 { home.roster[i].seasonGamesPlayed = 1 }
+            home.roster[i].seasonGamesPlayed += 1
         }
         for i in away.roster.indices where !away.roster[i].isInjured {
-            if away.roster[i].seasonGamesPlayed == 0 { away.roster[i].seasonGamesPlayed = 1 }
+            away.roster[i].seasonGamesPlayed += 1
         }
 
-        // Goalie stats
+        // Goalie stats — derive saves from shots-on-goal minus goals allowed
+        // Approximate shots-on-goal as 25-35 per game, weighted by opponent offense
         if let gIdx = home.goalies.first.flatMap({ g in home.roster.firstIndex(where: { $0.id == g.id }) }) {
+            let goalie = home.roster[gIdx]
+            let baseShots = Int.random(in: 25...35)
+            let reflexFactor = Double(goalie.reflexes) / 99.0
+            let posFactor = Double(goalie.positioning) / 99.0
+            let qualityFactor = 0.7 + (reflexFactor + posFactor) / 2.0 * 0.3  // 0.7 to 1.0
+            let shotsOnGoal = Int(Double(baseShots) * qualityFactor)
+            let saves = max(0, shotsOnGoal - result.awayScore)
             home.roster[gIdx].seasonGoalsAgainst += result.awayScore
-            home.roster[gIdx].seasonSaves += Int.random(in: 20...35) // approximate
-            home.roster[gIdx].seasonGamesPlayed += 1
+            home.roster[gIdx].seasonSaves += saves
             if result.awayScore == 0 { home.roster[gIdx].seasonShutouts += 1 }
         }
         if let gIdx = away.goalies.first.flatMap({ g in away.roster.firstIndex(where: { $0.id == g.id }) }) {
+            let goalie = away.roster[gIdx]
+            let baseShots = Int.random(in: 25...35)
+            let reflexFactor = Double(goalie.reflexes) / 99.0
+            let posFactor = Double(goalie.positioning) / 99.0
+            let qualityFactor = 0.7 + (reflexFactor + posFactor) / 2.0 * 0.3
+            let shotsOnGoal = Int(Double(baseShots) * qualityFactor)
+            let saves = max(0, shotsOnGoal - result.homeScore)
             away.roster[gIdx].seasonGoalsAgainst += result.homeScore
-            away.roster[gIdx].seasonSaves += Int.random(in: 20...35)
-            away.roster[gIdx].seasonGamesPlayed += 1
+            away.roster[gIdx].seasonSaves += saves
             if result.homeScore == 0 { away.roster[gIdx].seasonShutouts += 1 }
         }
     }

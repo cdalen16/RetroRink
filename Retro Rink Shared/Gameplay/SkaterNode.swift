@@ -68,7 +68,7 @@ class SkaterNode: SKNode {
         }
 
         // Shadow: dark semi-transparent ellipse underneath for depth
-        shadowNode = SKShapeNode(ellipseOf: CGSize(width: 22, height: 10))
+        shadowNode = SKShapeNode(ellipseOf: CGSize(width: 16, height: 7))
         shadowNode.fillColor = UIColor.black.withAlphaComponent(0.25)
         shadowNode.strokeColor = .clear
 
@@ -91,7 +91,7 @@ class SkaterNode: SKNode {
 
         // Sprite
         sprite.zPosition = ZPos.skater
-        sprite.setScale(player.position.isGoalie ? 1.0 : 0.9)
+        sprite.setScale(player.position.isGoalie ? 0.75 : 0.6)
         addChild(sprite)
 
         // Number label
@@ -116,7 +116,7 @@ class SkaterNode: SKNode {
         puckDot.fillColor = .white
         puckDot.strokeColor = .clear
         puckDot.zPosition = ZPos.skater + 0.5
-        puckDot.position = CGPoint(x: teamIndex == 0 ? 12 : -12, y: -4)
+        puckDot.position = CGPoint(x: teamIndex == 0 ? 8 : -8, y: -4)
         puckDot.isHidden = true
         addChild(puckDot)
         puckIndicator = puckDot

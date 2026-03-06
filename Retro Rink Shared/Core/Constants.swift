@@ -141,20 +141,20 @@ struct GameConfig {
     static let goalDepth: CGFloat = 30
     static let creaseRadius: CGFloat = 50
 
-    static let skaterRadius: CGFloat = 14
-    static let puckRadius: CGFloat = 5
+    static let skaterRadius: CGFloat = 10
+    static let puckRadius: CGFloat = 3
     static let skaterSpeed: CGFloat = 200
     static let puckSpeed: CGFloat = 500
-    static let passSpeed: CGFloat = 350
+    static let passSpeed: CGFloat = 500
     static let shotSpeedBase: CGFloat = 400
     static let shotSpeedMax: CGFloat = 700
 }
 
 // MARK: - Camera Configuration
 struct CameraConfig {
-    static let scale: CGFloat = 1.8
-    static let followSpeed: CGFloat = 0.08
-    static let leadAmount: CGFloat = 80
+    static let scale: CGFloat = 0.65
+    static let followSpeed: CGFloat = 0.12
+    static let leadAmount: CGFloat = 50
     static let boundsPadding: CGFloat = 50
 }
 
@@ -162,7 +162,7 @@ struct CameraConfig {
 struct TouchConfig {
     static let swipeMinDistance: CGFloat = 30
     static let swipeMaxDuration: TimeInterval = 0.6
-    static let dekeAngleThreshold: CGFloat = 75.0 * .pi / 180.0  // 75 degrees — most swipes count as shots
+    static let dekeAngleThreshold: CGFloat = 55.0 * .pi / 180.0  // 55 degrees — perpendicular swipes trigger dekes
     static let tapRadius: CGFloat = 55
 }
 

@@ -280,18 +280,18 @@ class HockeyAI {
         let shotQuality = Double(shotAccuracy) * (Double(shooterStats.shooting) / 99.0)
         let powerFactor = min(Double(shotPower) / Double(GameConfig.shotSpeedMax), 1.0)
 
-        // Base save chance
-        var saveChance = (reflexRating * 0.4 + positionRating * 0.3) * 0.8
+        // Base save chance: NHL goalies save ~90% of shots, so start high
+        var saveChance = 0.55 + reflexRating * 0.25 + positionRating * 0.15
 
-        // Reduce by shot quality and power
-        saveChance -= shotQuality * 0.3
-        saveChance -= powerFactor * 0.15
+        // Reduce by shot quality and power (smaller penalty)
+        saveChance -= shotQuality * 0.15
+        saveChance -= powerFactor * 0.08
 
         // Difficulty modifier
         saveChance += difficulty.saveChanceBonus
 
-        // Clamp to reasonable range
-        saveChance = max(0.15, min(0.85, saveChance))
+        // Clamp: even the worst scenario saves ~40%, best ~92%
+        saveChance = max(0.40, min(0.92, saveChance))
 
         return Double.random(in: 0...1) < saveChance
     }

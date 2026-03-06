@@ -544,7 +544,7 @@ final class PixelArt {
             [-1, 0, 0, 0,-1],
         ]
 
-        let tex = texture(from: data, palette: palette, scale: kPixelSize * 0.8)
+        let tex = texture(from: data, palette: palette, scale: kPixelSize * 0.5)
         textureCache[key] = tex
         return tex
     }
