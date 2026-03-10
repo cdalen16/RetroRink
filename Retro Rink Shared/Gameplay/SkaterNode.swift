@@ -39,6 +39,7 @@ class SkaterNode: SKNode {
 
     var targetPosition: CGPoint?
     var currentSpeed: CGFloat = 0
+    var isCharging: Bool = false   // body check charge in progress
     var maxSpeed: CGFloat {
         CGFloat(playerStats.speed) * 2.0 + 60
     }

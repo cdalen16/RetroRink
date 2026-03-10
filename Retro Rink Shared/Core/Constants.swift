@@ -62,13 +62,19 @@ enum Position: String, Codable, CaseIterable {
 enum GameplayState {
     case pregame
     case faceoff
-    case playerOffense
-    case simulating
+    case playing        // continuous live gameplay (offense + defense)
     case goalScored
     case periodBreak
     case overtime
     case shootout
     case gameOver
+}
+
+// MARK: - Possession State (sub-state within .playing)
+enum PossessionState {
+    case playerOffense    // player's team has puck
+    case playerDefense    // opponent has puck
+    case loosePuck        // nobody has it
 }
 
 // MARK: - Season Phase
@@ -119,9 +125,8 @@ enum Difficulty: Int, Codable, CaseIterable {
 // MARK: - Game Configuration
 struct GameConfig {
     static let periodsPerGame = 3
-    static let possessionsPerPeriod = 5
-    static let periodDisplayDuration: TimeInterval = 60
-    static let shotClockDuration: TimeInterval = 24
+    static let periodDuration: TimeInterval = 75       // seconds per period
+    static let otPeriodDuration: TimeInterval = 45     // shorter OT period
 
     static let maxRosterSize = 20
     static let minRosterSize = 14

@@ -354,4 +354,118 @@ class HockeyAI {
             y: node.position.y + vel.dy * CGFloat(leadTime)
         )
     }
+
+    // MARK: - Opponent Offense AI
+
+    private var lastOpponentOffenseTime: TimeInterval = 0
+    private let opponentOffenseInterval: TimeInterval = 0.8
+
+    /// AI decision for the opponent carrier: skate, pass, or shoot.
+    func updateOpponentOffense(
+        skaters: [SkaterNode],
+        puckCarrier: SkaterNode,
+        attackingRight: Bool,
+        defenders: [SkaterNode],
+        puck: PuckNode,
+        currentTime: TimeInterval,
+        opponentShotClock: TimeInterval
+    ) -> OpponentAction {
+        let reaction = difficulty.aiReactionMultiplier
+
+        // Move non-carrier teammates to offensive positions
+        updateOffensiveAI(
+            skaters: skaters,
+            puckCarrier: puckCarrier,
+            attackingRight: attackingRight,
+            opponents: defenders,
+            currentTime: currentTime
+        )
+
+        // Carrier decision-making (throttled)
+        guard currentTime - lastOpponentOffenseTime > opponentOffenseInterval else {
+            return .none
+        }
+        lastOpponentOffenseTime = currentTime
+
+        let goalMouth = attackingRight ? rink.rightGoalMouth : rink.leftGoalMouth
+        let distToGoal = puckCarrier.position.distance(to: goalMouth)
+        let shootRange = rink.rinkWidth * 0.35
+
+        // Determine pressure from defenders
+        let nearestDef = defenders.filter { !$0.posType.isGoalie }
+            .min { $0.position.distance(to: puckCarrier.position) < $1.position.distance(to: puckCarrier.position) }
+        let defPressure = nearestDef.map { puckCarrier.position.distance(to: $0.position) } ?? 999
+
+        // In shooting range → consider shooting
+        if distToGoal < shootRange && opponentShotClock > 2.0 {
+            let shotChance = 0.2 + Double(reaction) * 0.15 + (opponentShotClock / 20.0) * 0.15
+            if Double.random(in: 0...1) < shotChance {
+                let power = GameConfig.shotSpeedBase + CGFloat.random(in: 0...150) * reaction
+                // Add some inaccuracy
+                let aimOffset = CGFloat.random(in: -20...20)
+                let target = CGPoint(x: goalMouth.x, y: goalMouth.y + aimOffset)
+                return .shoot(target: target, power: power)
+            }
+        }
+
+        // Under heavy pressure → try to pass
+        if defPressure < 50 {
+            let passTargets = skaters.filter {
+                $0.playerID != puckCarrier.playerID && !$0.posType.isGoalie
+            }
+            if let best = findBestPassTarget(carrier: puckCarrier, teammates: passTargets,
+                                              defenders: defenders) {
+                return .pass(target: best)
+            }
+        }
+
+        // Default: skate toward goal
+        let skateTarget = CGPoint(
+            x: goalMouth.x + (attackingRight ? -100 : 100),
+            y: puckCarrier.position.y + CGFloat.random(in: -30...30)
+        )
+        return .skate(target: skateTarget)
+    }
+
+    /// Find the best open teammate to pass to.
+    private func findBestPassTarget(
+        carrier: SkaterNode,
+        teammates: [SkaterNode],
+        defenders: [SkaterNode]
+    ) -> SkaterNode? {
+        var bestScore: Double = -1
+        var bestTarget: SkaterNode?
+
+        for mate in teammates {
+            let midpoint = CGPoint(
+                x: (carrier.position.x + mate.position.x) / 2,
+                y: (carrier.position.y + mate.position.y) / 2
+            )
+
+            // Check if any defender blocks the lane
+            let laneBlocked = defenders.filter { !$0.posType.isGoalie }.contains { def in
+                def.position.distance(to: midpoint) < 30
+            }
+            if laneBlocked { continue }
+
+            let dist = carrier.position.distance(to: mate.position)
+            guard dist > 30 && dist < 300 else { continue }
+
+            let score = 100.0 / Double(dist)
+            if score > bestScore {
+                bestScore = score
+                bestTarget = mate
+            }
+        }
+
+        return bestTarget
+    }
+}
+
+// MARK: - Opponent Action
+enum OpponentAction {
+    case none
+    case skate(target: CGPoint)
+    case pass(target: SkaterNode)
+    case shoot(target: CGPoint, power: CGFloat)
 }
