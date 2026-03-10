@@ -24,9 +24,14 @@ class SkaterNode: SKNode {
     // MARK: - Pre-loaded Textures (left + right variants for direction)
     private var idleTextureRight: SKTexture!
     private var idleTextureLeft: SKTexture!
+    // Skating animation frames
+    private var skatingFramesRight: [SKTexture]?
+    private var skatingFramesLeft: [SKTexture]?
     // Goalie textures
     private var goalieTextureRight: SKTexture?
     private var goalieTextureLeft: SKTexture?
+    // Team colors (for on-demand frame generation)
+    private let teamColorData: TeamColors
 
     // MARK: - State
     var hasPuck: Bool = false {
@@ -52,6 +57,7 @@ class SkaterNode: SKNode {
         self.posType = player.position
         self.teamIndex = teamIndex
         self.playerStats = player
+        self.teamColorData = teamColors
 
         // Pre-load textures for both directions
         if player.position.isGoalie {
@@ -66,10 +72,13 @@ class SkaterNode: SKNode {
             idleTextureRight = PixelArt.skaterTexture(teamColors: teamColors, direction: .right)
             idleTextureLeft  = PixelArt.skaterTexture(teamColors: teamColors, direction: .left)
             sprite = SKSpriteNode(texture: teamIndex == 0 ? idleTextureRight : idleTextureLeft)
+            // Pre-load skating animation frames
+            skatingFramesRight = PixelArt.skaterFrames(teamColors: teamColors, state: .skating, direction: .right)
+            skatingFramesLeft  = PixelArt.skaterFrames(teamColors: teamColors, state: .skating, direction: .left)
         }
 
         // Shadow: dark semi-transparent ellipse underneath for depth
-        shadowNode = SKShapeNode(ellipseOf: CGSize(width: 16, height: 7))
+        shadowNode = SKShapeNode(ellipseOf: CGSize(width: 20, height: 8))
         shadowNode.fillColor = UIColor.black.withAlphaComponent(0.25)
         shadowNode.strokeColor = .clear
 
@@ -92,7 +101,7 @@ class SkaterNode: SKNode {
 
         // Sprite
         sprite.zPosition = ZPos.skater
-        sprite.setScale(player.position.isGoalie ? 0.75 : 0.6)
+        sprite.setScale(player.position.isGoalie ? 0.65 : 0.55)
         addChild(sprite)
 
         // Number label
@@ -112,12 +121,13 @@ class SkaterNode: SKNode {
         addChild(ring)
         selectionRing = ring
 
-        // Puck possession indicator (small white dot)
+        // Puck possession indicator (small white dot at stick blade position)
         let puckDot = SKShapeNode(circleOfRadius: 3)
         puckDot.fillColor = .white
         puckDot.strokeColor = .clear
         puckDot.zPosition = ZPos.skater + 0.5
-        puckDot.position = CGPoint(x: teamIndex == 0 ? 8 : -8, y: -4)
+        // Position at the stick blade tip: forward and slightly below center
+        puckDot.position = CGPoint(x: teamIndex == 0 ? 10 : -10, y: -6)
         puckDot.isHidden = true
         addChild(puckDot)
         puckIndicator = puckDot
@@ -193,20 +203,29 @@ class SkaterNode: SKNode {
         guard state != animState else { return }
         animState = state
 
-        // Remove any current animation
+        // Remove any current animation and reset sprite transform
         sprite.removeAction(forKey: "anim")
+        sprite.zRotation = 0
+        sprite.position = .zero
 
         switch state {
         case .idle:
             sprite.texture = facingRight ? idleTextureRight : idleTextureLeft
 
         case .skating:
-            // Subtle bob animation to simulate skating stride
-            let bob = SKAction.sequence([
-                SKAction.moveBy(x: 0, y: 1.5, duration: 0.12),
-                SKAction.moveBy(x: 0, y: -1.5, duration: 0.12),
-            ])
-            sprite.run(SKAction.repeatForever(bob), withKey: "anim")
+            // Texture-swapped skating animation with leg stride frames
+            let frames = facingRight ? skatingFramesRight : skatingFramesLeft
+            if let frames = frames, !frames.isEmpty {
+                let animate = SKAction.animate(with: frames, timePerFrame: AnimationConfig.skateFrameDuration)
+                sprite.run(SKAction.repeatForever(animate), withKey: "anim")
+            } else {
+                // Fallback bob for goalies (no skating frames)
+                let bob = SKAction.sequence([
+                    SKAction.moveBy(x: 0, y: 1.5, duration: 0.12),
+                    SKAction.moveBy(x: 0, y: -1.5, duration: 0.12),
+                ])
+                sprite.run(SKAction.repeatForever(bob), withKey: "anim")
+            }
 
         case .shooting:
             // Wind-up and strike rotation
@@ -320,12 +339,32 @@ class SkaterNode: SKNode {
     // MARK: - Direction
     private func updateDirection(dx: CGFloat) {
         if dx > 5 {
+            guard !facingRight else { return }
             facingRight = true
-            sprite.texture = posType.isGoalie ? goalieTextureRight : idleTextureRight
+            if posType.isGoalie {
+                sprite.texture = goalieTextureRight
+            } else if animState == .skating, let frames = skatingFramesRight, !frames.isEmpty {
+                // Swap to right-facing skating frames mid-animation
+                sprite.removeAction(forKey: "anim")
+                let animate = SKAction.animate(with: frames, timePerFrame: AnimationConfig.skateFrameDuration)
+                sprite.run(SKAction.repeatForever(animate), withKey: "anim")
+            } else {
+                sprite.texture = idleTextureRight
+            }
             sprite.xScale = abs(sprite.xScale)
         } else if dx < -5 {
+            guard facingRight else { return }
             facingRight = false
-            sprite.texture = posType.isGoalie ? goalieTextureLeft : idleTextureLeft
+            if posType.isGoalie {
+                sprite.texture = goalieTextureLeft
+            } else if animState == .skating, let frames = skatingFramesLeft, !frames.isEmpty {
+                // Swap to left-facing skating frames mid-animation
+                sprite.removeAction(forKey: "anim")
+                let animate = SKAction.animate(with: frames, timePerFrame: AnimationConfig.skateFrameDuration)
+                sprite.run(SKAction.repeatForever(animate), withKey: "anim")
+            } else {
+                sprite.texture = idleTextureLeft
+            }
             sprite.xScale = abs(sprite.xScale)
         }
     }

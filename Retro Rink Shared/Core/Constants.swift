@@ -182,7 +182,7 @@ struct JoystickConfig {
 // MARK: - Animation Configuration
 struct AnimationConfig {
     static let skateFrameCount = 4
-    static let skateFrameDuration: TimeInterval = 0.12
+    static let skateFrameDuration: TimeInterval = 0.20
     static let shootFrameCount = 3
     static let shootFrameDuration: TimeInterval = 0.1
     static let celebrateFrameCount = 4
@@ -273,6 +273,17 @@ struct RetroPalette {
     static let textGreen   = UIColor(hex: "00CC66")
     static let textRed     = UIColor(hex: "FF4444")
     static let textYellow  = UIColor(hex: "FFCC00")
+
+    // UI depth utility colors
+    static let highlight   = UIColor(hex: "FFFFFF")  // for bevels / inner highlights
+    static let shadow      = UIColor(hex: "0A0A18")  // for drop shadows / inner shadows
+    static let panelBorder = UIColor(hex: "556688")  // polished panel outer border
+    static let headerBar   = UIColor(hex: "0D1B3E")  // darker header bar for titled panels
+    static let divider     = UIColor(hex: "334466")  // section divider lines
+    static let rowEven     = UIColor(hex: "1A1A3E")  // alternating row bg
+    static let rowOdd      = UIColor(hex: "141430")  // alternating row bg (darker)
+    static let accentDark  = UIColor(hex: "B8354D")  // darker accent for pressed states
+    static let iceSheen    = UIColor(hex: "C8DEFE")  // ice texture shimmer color
 }
 
 // MARK: - Random Helpers

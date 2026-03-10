@@ -33,10 +33,19 @@ class RetroButton: SKNode {
     var action: (() -> Void)?
     private var isPressed = false
     private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
+    private let buttonWidth: CGFloat
+    private let buttonHeight: CGFloat
+    private let buttonColor: UIColor
+    private let buttonBorderColor: UIColor?
 
     init(text: String, width: CGFloat = 180, height: CGFloat = 44,
          color: UIColor = RetroPalette.midPanel, borderColor: UIColor = RetroPalette.accent,
          fontSize: CGFloat = RetroFont.bodySize) {
+
+        self.buttonWidth = width
+        self.buttonHeight = height
+        self.buttonColor = color
+        self.buttonBorderColor = borderColor
 
         let tex = PixelArt.buttonTexture(width: width, height: height, color: color, borderColor: borderColor)
         background = SKSpriteNode(texture: tex, size: CGSize(width: width, height: height))
@@ -59,12 +68,17 @@ class RetroButton: SKNode {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         isPressed = true
         feedbackGenerator.impactOccurred()
+        // Scale down + darken for pressed 3D effect
         run(SKAction.scale(to: 0.93, duration: 0.05))
+        background.color = UIColor.black
+        background.colorBlendFactor = 0.2
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard isPressed else { return }
         isPressed = false
+
+        background.colorBlendFactor = 0.0
 
         let bounce = SKAction.sequence([
             SKAction.scale(to: 1.05, duration: 0.06),
@@ -77,6 +91,7 @@ class RetroButton: SKNode {
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         isPressed = false
+        background.colorBlendFactor = 0.0
         run(SKAction.scale(to: 1.0, duration: 0.05))
     }
 }
@@ -85,15 +100,23 @@ class RetroButton: SKNode {
 class RetroPanel: SKNode {
     let background: SKSpriteNode
     let titleLabel: SKLabelNode?
+    let panelWidth: CGFloat
+    let panelHeight: CGFloat
+    static let headerBarHeight: CGFloat = 24
 
     init(width: CGFloat, height: CGFloat, title: String? = nil) {
-        let tex = PixelArt.panelTexture(width: width, height: height)
+        self.panelWidth = width
+        self.panelHeight = height
+
+        let headerH: CGFloat = title != nil ? RetroPanel.headerBarHeight : 0
+        let tex = PixelArt.panelTexture(width: width, height: height, headerHeight: headerH)
         background = SKSpriteNode(texture: tex, size: CGSize(width: width, height: height))
         background.zPosition = 0
 
         if let title = title {
-            titleLabel = RetroFont.label(title, size: RetroFont.headerSize, color: RetroPalette.gold)
-            titleLabel?.position = CGPoint(x: 0, y: height / 2 - 20)
+            titleLabel = RetroFont.label(title, size: RetroFont.smallSize, color: RetroPalette.gold)
+            // Position in center of header bar area
+            titleLabel?.position = CGPoint(x: 0, y: height / 2 - headerH / 2 - kPixelSize / 2)
             titleLabel?.zPosition = 2
         } else {
             titleLabel = nil
@@ -533,11 +556,16 @@ class PlayerCard: SKNode {
 
         // Trait badges (small colored tags to the right of stars)
         if !player.traits.isEmpty {
-            let traitStartX: CGFloat = width / 2 - 24
-            for (i, trait) in player.traits.prefix(2).enumerated() {
+            let badgeW: CGFloat = 46
+            let badgeSpacing: CGFloat = 4
+            let traitsToShow = player.traits.prefix(2)
+            let totalBadgeW = CGFloat(traitsToShow.count) * badgeW + CGFloat(traitsToShow.count - 1) * badgeSpacing
+            let traitStartX: CGFloat = width / 2 - 12 - totalBadgeW / 2
+            for (i, trait) in traitsToShow.enumerated() {
                 let traitColor = traitBadgeColor(trait)
-                let badgeBg = SKSpriteNode(color: traitColor, size: CGSize(width: 52, height: 12))
-                badgeBg.position = CGPoint(x: traitStartX - CGFloat(i) * 56, y: -5)
+                let badgeBg = SKSpriteNode(color: traitColor, size: CGSize(width: badgeW, height: 12))
+                let bx = traitStartX + CGFloat(i) * (badgeW + badgeSpacing)
+                badgeBg.position = CGPoint(x: bx, y: -5)
                 badgeBg.zPosition = 1
                 addChild(badgeBg)
 

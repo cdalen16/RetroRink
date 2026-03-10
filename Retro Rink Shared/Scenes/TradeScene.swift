@@ -118,7 +118,7 @@ class TradeScene: BaseScene {
                 "\(team.abbreviation)  \(team.fullName)",
                 size: RetroFont.smallSize, color: team.colors.primaryColor
             )
-            teamLabel.position = CGPoint(x: -containerW / 2 + 40, y: 2)
+            teamLabel.position = CGPoint(x: -containerW / 2 + 40, y: 6)
             teamLabel.horizontalAlignmentMode = .left
             teamLabel.zPosition = 2
             row.addChild(teamLabel)
@@ -127,8 +127,8 @@ class TradeScene: BaseScene {
                 "OVR: \(team.teamOverall)  |  \(team.record)  |  \(team.points) pts",
                 size: RetroFont.tinySize, color: RetroPalette.textGray
             )
-            infoLabel.position = CGPoint(x: containerW / 2 - 40, y: 2)
-            infoLabel.horizontalAlignmentMode = .right
+            infoLabel.position = CGPoint(x: -containerW / 2 + 40, y: -8)
+            infoLabel.horizontalAlignmentMode = .left
             infoLabel.zPosition = 2
             row.addChild(infoLabel)
 
@@ -136,7 +136,7 @@ class TradeScene: BaseScene {
             let selectBtn = RetroButton(text: "SELECT", width: 70, height: 24,
                                          color: UIColor(hex: "333344"), borderColor: UIColor(hex: "555577"),
                                          fontSize: RetroFont.tinySize)
-            selectBtn.position = CGPoint(x: containerW / 2 - 60, y: 0)
+            selectBtn.position = CGPoint(x: containerW / 2 - 50, y: 0)
             selectBtn.zPosition = 2
             selectBtn.action = { [weak self] in
                 self?.selectedTeamIndex = i

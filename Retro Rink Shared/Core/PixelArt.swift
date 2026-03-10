@@ -82,28 +82,35 @@ final class PixelArt {
         ]
     }
 
-    // MARK: - Skater Base Template (12x16)
+    // MARK: - Skater Base Template (16x20, true side-profile facing right)
 
-    /// Returns the base idle skater pixel data (facing right).
+    /// Returns the base idle skater pixel data (facing right, true side-profile).
     /// Palette: 0=skin, 1=helmet, 2=jersey primary, 3=jersey secondary, 4=pants, 5=skates, 6=stick, 7=accent
+    /// The skater is a clear side profile: narrow body, arms connecting to stick, shorter legs.
+    /// Content in rows 3-16 (centered vertically), 16 columns x 20 rows
     private static func skaterBaseData() -> [[Int]] {
         return [
-            [-1,-1,-1,-1, 1, 1, 1, 1,-1,-1,-1,-1],  // row 0: helmet top
-            [-1,-1,-1, 1, 1, 1, 1, 1, 1,-1,-1,-1],  // row 1: helmet
-            [-1,-1,-1, 1, 0, 1, 0, 1, 1,-1,-1,-1],  // row 2: face (visor)
-            [-1,-1,-1, 0, 0, 0, 0, 0,-1,-1,-1,-1],  // row 3: chin
-            [-1,-1, 2, 2, 3, 3, 3, 2, 2,-1,-1,-1],  // row 4: shoulders
-            [-1,-1, 2, 2, 3, 3, 3, 2, 2,-1,-1,-1],  // row 5: jersey top
-            [-1,-1, 2, 7, 7, 7, 7, 7, 2,-1,-1,-1],  // row 6: jersey stripe
-            [-1,-1, 2, 2, 3, 3, 3, 2, 2,-1,-1,-1],  // row 7: jersey bottom
-            [-1,-1, 0, 2, 2, 2, 2, 2, 0, 6,-1,-1],  // row 8: hands + stick
-            [-1,-1,-1, 4, 4, 4, 4, 4,-1, 6,-1,-1],  // row 9: pants top
-            [-1,-1,-1, 4, 4, 4, 4, 4,-1, 6,-1,-1],  // row 10: pants
-            [-1,-1,-1, 4, 4,-1, 4, 4,-1,-1,-1,-1],  // row 11: pants legs
-            [-1,-1,-1, 4, 4,-1, 4, 4,-1,-1,-1,-1],  // row 12: socks
-            [-1,-1,-1, 5, 5,-1, 5, 5,-1,-1,-1,-1],  // row 13: skates top
-            [-1,-1, 5, 5, 5,-1, 5, 5, 5,-1,-1,-1],  // row 14: skate blades
-            [-1,-1, 5, 5,-1,-1,-1, 5, 5,-1,-1,-1],  // row 15: blade edges
+            //  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+            [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],  // row 0:  empty
+            [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],  // row 1:  empty
+            [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],  // row 2:  empty
+            [-1,-1,-1,-1,-1, 1, 1, 1,-1,-1,-1,-1,-1,-1,-1,-1],  // row 3:  helmet top
+            [-1,-1,-1,-1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1,-1],  // row 4:  helmet
+            [-1,-1,-1,-1, 1, 1, 1, 0, 0, 0,-1,-1,-1,-1,-1,-1],  // row 5:  helmet + face (nose/visor right)
+            [-1,-1,-1,-1,-1, 1, 0, 0,-1,-1,-1,-1,-1,-1,-1,-1],  // row 6:  chin guard + jaw
+            [-1,-1,-1,-1, 2, 2, 3, 3, 2,-1,-1,-1,-1,-1,-1,-1],  // row 7:  shoulders (narrow side view)
+            [-1,-1,-1, 2, 2, 3, 3, 2, 0, 6,-1,-1,-1,-1,-1,-1],  // row 8:  jersey + top hand(0) grips stick(6)
+            [-1,-1,-1, 2, 7, 7, 7, 2, 2, 6,-1,-1,-1,-1,-1,-1],  // row 9:  jersey stripe + sleeve(2) connects to shaft
+            [-1,-1,-1, 2, 2, 3, 2, 2, 0, 6,-1,-1,-1,-1,-1,-1],  // row 10: jersey + bottom hand(0) on shaft
+            [-1,-1,-1,-1, 4, 4, 4, 4,-1,-1, 6,-1,-1,-1,-1,-1],  // row 11: pants upper
+            [-1,-1,-1,-1, 4, 4, 4, 4,-1,-1, 6,-1,-1,-1,-1,-1],  // row 12: pants lower
+            [-1,-1,-1,-1, 7, 4,-1, 4, 7,-1, 6,-1,-1,-1,-1,-1],  // row 13: legs split + sock stripes
+            [-1,-1,-1, 5, 5, 5,-1, 5, 5,-1, 6, 6,-1,-1,-1,-1],  // row 14: skate boots + shaft base
+            [-1,-1,-1, 5, 5,-1,-1,-1, 5, 5, 6, 6, 6,-1,-1,-1],  // row 15: skate blades + stick blade
+            [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 6, 6,-1,-1,-1],  // row 16: blade tip
+            [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],  // row 17: empty
+            [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],  // row 18: empty
+            [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],  // row 19: empty
         ]
     }
 
@@ -167,70 +174,55 @@ final class PixelArt {
         return textures
     }
 
-    // MARK: - Skating Frames (4 frames)
+    // MARK: - Skating Frames (4 frames, side-profile stride cycle)
 
     private static func skaterSkatingFrames() -> [[[Int]]] {
         let base = skaterBaseData()
+        // Side-view skating: only the BACK leg pushes backward as a whole unit
+        // from hip (row 11) to blade (row 15). Front leg stays completely fixed.
+        // Idle front leg: row 11 cols 6-7, row 12 cols 6-7, row 13 cols 7-8,
+        //                 row 14 cols 7-8, row 15 cols 8-9
+        // Idle back leg:  row 11 cols 4-5, row 12 cols 4-5, row 13 cols 4-5,
+        //                 row 14 cols 3-5, row 15 cols 3-4
+        // 2 poses: glide (together) and push (back leg shifts 2px left, hip to blade)
 
-        // Frame 0: Left leg forward, right leg back
-        var frame0 = base
-        frame0[11] = [-1,-1, 4, 4,-1,-1,-1, 4, 4,-1,-1,-1]  // left leg forward, right back
-        frame0[12] = [-1, 4, 4,-1,-1,-1,-1,-1, 4, 4,-1,-1]  // socks spread
-        frame0[13] = [-1, 5, 5,-1,-1,-1,-1,-1, 5, 5,-1,-1]  // skates spread
-        frame0[14] = [ 5, 5, 5,-1,-1,-1,-1,-1, 5, 5, 5,-1]  // blades spread
-        frame0[15] = [ 5, 5,-1,-1,-1,-1,-1,-1,-1, 5, 5,-1]  // blade edges spread
+        // Frame 0: Legs together (glide) — same as idle
+        let frame0 = base
 
-        // Frame 1: Legs together (glide)
+        // Frame 1: Back leg fully pushed back — entire leg shifts 2px left from hip to blade
         var frame1 = base
-        frame1[11] = [-1,-1,-1, 4, 4, 4, 4,-1,-1,-1,-1,-1]  // legs together
-        frame1[12] = [-1,-1,-1, 4, 4, 4, 4,-1,-1,-1,-1,-1]  // socks together
-        frame1[13] = [-1,-1,-1, 5, 5, 5, 5,-1,-1,-1,-1,-1]  // skates together
-        frame1[14] = [-1,-1, 5, 5, 5, 5, 5, 5,-1,-1,-1,-1]  // blades together
-        frame1[15] = [-1,-1, 5, 5,-1,-1, 5, 5,-1,-1,-1,-1]  // edges together
+        frame1[11] = [-1,-1,-1, 4, 4,-1, 4, 4,-1,-1, 6,-1,-1,-1,-1,-1]  // back hip at 3-4, front at 6-7
+        frame1[12] = [-1,-1, 4, 4,-1,-1, 4, 4,-1,-1, 6,-1,-1,-1,-1,-1]  // back thigh at 2-3, front at 6-7
+        frame1[13] = [-1,-1, 7, 4,-1,-1,-1, 4, 7,-1, 6,-1,-1,-1,-1,-1]  // back shin at 2-3, front at 7-8
+        frame1[14] = [-1, 5, 5,-1,-1,-1,-1, 5, 5,-1, 6, 6,-1,-1,-1,-1]  // back boot at 1-2, front at 7-8
+        frame1[15] = [ 5, 5,-1,-1,-1,-1,-1,-1, 5, 5, 6, 6, 6,-1,-1,-1]  // back blade at 0-1, front at 8-9
+        frame1[16] = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 6, 6,-1,-1,-1]  // blade tip
 
-        // Frame 2: Right leg forward, left leg back (mirror of frame 0)
-        var frame2 = base
-        frame2[11] = [-1,-1,-1, 4, 4,-1,-1, 4, 4,-1,-1,-1]  // right forward, left back
-        frame2[12] = [-1,-1, 4, 4,-1,-1,-1,-1, 4,-1,-1,-1]  // socks offset
-        frame2[13] = [-1,-1, 5, 5,-1,-1,-1,-1, 5,-1,-1,-1]  // skates offset
-        frame2[14] = [-1, 5, 5, 5,-1,-1,-1, 5, 5, 5,-1,-1]  // blades offset
-        frame2[15] = [-1, 5, 5,-1,-1,-1,-1, 5, 5,-1,-1,-1]  // edges offset
-
-        // Frame 3: Legs together (glide variant, slight offset)
-        var frame3 = base
-        frame3[11] = [-1,-1,-1,-1, 4, 4, 4,-1,-1,-1,-1,-1]  // legs together offset
-        frame3[12] = [-1,-1,-1,-1, 4, 4, 4,-1,-1,-1,-1,-1]  // socks together offset
-        frame3[13] = [-1,-1,-1,-1, 5, 5, 5,-1,-1,-1,-1,-1]  // skates together offset
-        frame3[14] = [-1,-1,-1, 5, 5, 5, 5, 5,-1,-1,-1,-1]  // blades together offset
-        frame3[15] = [-1,-1,-1, 5, 5,-1, 5, 5,-1,-1,-1,-1]  // edges together offset
-
-        return [frame0, frame1, frame2, frame3]
+        return [frame0, frame1]
     }
 
-    // MARK: - Shooting Frames (3 frames)
+    // MARK: - Shooting Frames (3 frames, side-profile slapshot)
 
     private static func skaterShootingFrames() -> [[[Int]]] {
         let base = skaterBaseData()
 
-        // Frame 0: Wind up - stick pulled back, lean back slightly
+        // Frame 0: Wind up - stick pulled behind body
         var frame0 = base
-        frame0[4]  = [-1,-1,-1, 2, 3, 3, 3, 2, 2,-1,-1,-1]  // shoulders shift back
-        frame0[5]  = [-1,-1,-1, 2, 3, 3, 3, 2, 2,-1,-1,-1]  // jersey shift back
-        frame0[6]  = [-1,-1,-1, 7, 7, 7, 7, 7, 2,-1,-1,-1]  // stripe shift back
-        frame0[7]  = [-1,-1,-1, 2, 3, 3, 3, 2, 2,-1,-1,-1]  // jersey bottom shift back
-        frame0[8]  = [-1,-1,-1, 0, 2, 2, 2, 2, 0,-1, 6,-1]  // hands back, stick pulled way back
-        frame0[9]  = [-1,-1,-1, 4, 4, 4, 4, 4,-1,-1, 6,-1]  // pants + stick behind
-        frame0[10] = [-1,-1,-1, 4, 4, 4, 4, 4,-1,-1, 6,-1]  // pants + stick behind
+        frame0[7]  = [-1,-1,-1,-1,-1, 2, 2, 3, 3, 2,-1,-1,-1,-1,-1,-1]  // shoulders back
+        frame0[8]  = [-1,-1,-1,-1, 2, 3, 3, 2, 0,-1,-1,-1,-1,-1,-1,-1]  // jersey, arm back
+        frame0[9]  = [-1,-1, 6,-1, 2, 7, 7, 2,-1,-1,-1,-1,-1,-1,-1,-1]  // stick shaft behind
+        frame0[10] = [-1, 6,-1,-1, 2, 2, 3, 2, 0,-1,-1,-1,-1,-1,-1,-1]  // stick behind, hand
+        frame0[11] = [ 6, 6,-1,-1, 4, 4, 4, 4,-1,-1,-1,-1,-1,-1,-1,-1]  // blade behind, pants
 
-        // Frame 1: Follow through - stick forward, body leaning forward
+        // Frame 1: Follow through - stick swung forward
         var frame1 = base
-        frame1[4]  = [-1, 2, 2, 3, 3, 3, 2, 2,-1,-1,-1,-1]  // shoulders forward
-        frame1[5]  = [-1, 2, 2, 3, 3, 3, 2, 2,-1,-1,-1,-1]  // jersey forward
-        frame1[6]  = [-1, 2, 7, 7, 7, 7, 7, 2,-1,-1,-1,-1]  // stripe forward
-        frame1[7]  = [-1, 2, 2, 3, 3, 3, 2, 2,-1,-1,-1,-1]  // jersey bottom forward
-        frame1[8]  = [ 6, 0, 2, 2, 2, 2, 2, 0,-1,-1,-1,-1]  // stick way out front
-        frame1[9]  = [ 6,-1, 4, 4, 4, 4, 4,-1,-1,-1,-1,-1]  // pants, stick forward
-        frame1[10] = [-1,-1, 4, 4, 4, 4, 4,-1,-1,-1,-1,-1]  // pants forward
+        frame1[7]  = [-1,-1,-1, 2, 2, 3, 3, 2,-1,-1,-1,-1,-1,-1,-1,-1]  // shoulders forward
+        frame1[8]  = [-1,-1, 2, 2, 3, 3, 2, 0,-1,-1,-1,-1,-1,-1,-1,-1]  // jersey forward
+        frame1[9]  = [-1,-1, 2, 7, 7, 7, 2,-1,-1,-1,-1,-1,-1,-1,-1,-1]  // stripe
+        frame1[10] = [-1,-1, 2, 2, 3, 2, 0,-1,-1,-1,-1,-1,-1,-1,-1,-1]  // jersey + arm forward
+        frame1[14] = [-1,-1,-1, 5, 5, 5,-1, 5, 5,-1, 6, 6,-1,-1,-1,-1]  // boots
+        frame1[15] = [-1,-1,-1, 5, 5,-1,-1,-1, 5, 5, 6, 6, 6, 6,-1,-1]  // blades + blade sweeping
+        frame1[16] = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 6, 6, 6,-1,-1]  // blade extended
 
         // Frame 2: Recovery - return to idle
         let frame2 = base
@@ -238,75 +230,70 @@ final class PixelArt {
         return [frame0, frame1, frame2]
     }
 
-    // MARK: - Celebrating Frames (4 frames)
+    // MARK: - Celebrating Frames (4 frames, side-profile)
 
     private static func skaterCelebratingFrames() -> [[[Int]]] {
         let base = skaterBaseData()
+        let w = base[0].count  // 16
 
-        // Frame 0: Arms raised up
+        // Frame 0: Stick raised above head in celebration
         var frame0 = base
-        frame0[2]  = [-1,-1, 0, 1, 0, 1, 0, 1, 0,-1,-1,-1]  // arms reaching up alongside head
-        frame0[3]  = [-1,-1,-1, 0, 0, 0, 0, 0,-1,-1,-1,-1]  // chin
-        frame0[4]  = [-1,-1,-1, 2, 3, 3, 3, 2,-1,-1,-1,-1]  // shoulders (arms gone up)
-        frame0[5]  = [-1,-1,-1, 2, 3, 3, 3, 2,-1,-1,-1,-1]  // jersey (narrower, arms up)
-        frame0[6]  = [-1,-1,-1, 7, 7, 7, 7, 7,-1,-1,-1,-1]  // stripe
-        frame0[7]  = [-1,-1,-1, 2, 3, 3, 3, 2,-1,-1,-1,-1]  // jersey bottom
-        frame0[8]  = [-1,-1,-1, 2, 2, 2, 2, 2,-1, 6,-1,-1]  // no hands visible (up), stick on ice
+        frame0[0]  = [-1,-1,-1,-1,-1,-1,-1,-1,-1, 6,-1,-1,-1,-1,-1,-1]  // stick raised high
+        frame0[1]  = [-1,-1,-1,-1,-1,-1,-1,-1,-1, 6,-1,-1,-1,-1,-1,-1]
+        frame0[2]  = [-1,-1,-1,-1,-1,-1,-1,-1,-1, 6,-1,-1,-1,-1,-1,-1]
+        frame0[3]  = [-1,-1,-1,-1,-1, 1, 1, 1,-1, 6,-1,-1,-1,-1,-1,-1]  // helmet + stick
+        frame0[4]  = [-1,-1,-1,-1, 1, 1, 1, 1, 1, 6,-1,-1,-1,-1,-1,-1]
+        frame0[8]  = [-1,-1,-1, 2, 2, 3, 3, 2, 0, 6,-1,-1,-1,-1,-1,-1]  // arm up holding stick
+        frame0[9]  = [-1,-1,-1, 2, 7, 7, 7, 2,-1,-1,-1,-1,-1,-1,-1,-1]  // no stick at body
+        frame0[10] = [-1,-1,-1, 2, 2, 3, 2, 2,-1,-1,-1,-1,-1,-1,-1,-1]
+        frame0[11] = [-1,-1,-1,-1, 4, 4, 4, 4,-1,-1,-1,-1,-1,-1,-1,-1]  // no stick by legs
+        frame0[14] = [-1,-1,-1, 5, 5, 5,-1, 5, 5,-1,-1,-1,-1,-1,-1,-1]
+        frame0[15] = [-1,-1,-1, 5, 5,-1,-1,-1, 5, 5,-1,-1,-1,-1,-1,-1]
+        frame0[16] = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
 
-        // Frame 1: Jump (shift body up 1 pixel, gap at bottom)
-        var frame1: [[Int]] = [[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]] // empty top row (shifted up visually)
-        frame1.append(contentsOf: frame0.dropLast()) // shift the celebrate pose up, dropping last row
-        // Add empty row at bottom for the gap
-        frame1[0]  = [-1,-1,-1,-1, 1, 1, 1, 1,-1,-1,-1,-1]  // helmet (was row 0, now shifted up)
-        // Actually rebuild properly: body is shifted up by 1, bottom row is empty
-        frame1 = Array(frame0.dropFirst()) // Remove first row
-        frame1.append([-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]) // Empty row at bottom (airborne gap)
+        // Frame 1: Jump (shift all content up by 1 row)
+        var frame1 = Array(frame0.dropFirst())
+        frame1.append([Int](repeating: -1, count: w))
 
-        // Frame 2: Arms up variant (stick raised)
+        // Frame 2: Stick raised higher, both arms
         var frame2 = frame0
-        frame2[0]  = [-1,-1,-1,-1, 1, 1, 1, 1,-1, 6,-1,-1]  // stick raised above head
-        frame2[1]  = [-1,-1,-1, 1, 1, 1, 1, 1, 1, 6,-1,-1]  // stick alongside helmet
-        frame2[8]  = [-1,-1,-1, 2, 2, 2, 2, 2,-1,-1,-1,-1]  // no stick on ice
+        frame2[7]  = [-1,-1,-1,-1, 2, 2, 3, 3, 2, 0, 6,-1,-1,-1,-1,-1]  // arms wider up
 
-        // Frame 3: Back on ground with arms up (same as frame 0 base)
+        // Frame 3: Same as frame 0
         let frame3 = frame0
 
         return [frame0, frame1, frame2, frame3]
     }
 
-    // MARK: - Deking Frames (2 frames)
+    // MARK: - Deking Frames (2 frames, side-angle deke)
 
     private static func skaterDekingFrames() -> [[[Int]]] {
         let base = skaterBaseData()
+        let w = base[0].count
 
-        // Frame 0: Lean left (shift body pixels left by 1)
+        // Frame 0: Lean/shift body left by 1 pixel (deking one way)
         var frame0 = base
         for r in 0..<frame0.count {
             let row = frame0[r]
-            // Shift all non-transparent pixels left by 1
-            var shifted = [Int](repeating: -1, count: row.count)
+            var shifted = [Int](repeating: -1, count: w)
             for c in 0..<row.count {
                 if row[c] != -1 {
                     let newC = c - 1
-                    if newC >= 0 {
-                        shifted[newC] = row[c]
-                    }
+                    if newC >= 0 { shifted[newC] = row[c] }
                 }
             }
             frame0[r] = shifted
         }
 
-        // Frame 1: Lean right (shift body pixels right by 1)
+        // Frame 1: Lean/shift body right by 1 pixel (deking other way)
         var frame1 = base
         for r in 0..<frame1.count {
             let row = frame1[r]
-            var shifted = [Int](repeating: -1, count: row.count)
+            var shifted = [Int](repeating: -1, count: w)
             for c in stride(from: row.count - 1, through: 0, by: -1) {
                 if row[c] != -1 {
                     let newC = c + 1
-                    if newC < row.count {
-                        shifted[newC] = row[c]
-                    }
+                    if newC < w { shifted[newC] = row[c] }
                 }
             }
             frame1[r] = shifted
@@ -315,31 +302,32 @@ final class PixelArt {
         return [frame0, frame1]
     }
 
-    // MARK: - Hit Frames (2 frames)
+    // MARK: - Hit Frames (2 frames, side-profile hit reaction)
 
     private static func skaterHitFrames() -> [[[Int]]] {
         let base = skaterBaseData()
 
-        // Frame 0: Recoiling - lean back, arms out
+        // Frame 0: Recoiling back - body jolted, stick dropped
         var frame0 = base
-        frame0[4]  = [-1,-1,-1, 2, 3, 3, 3, 2, 2, 0,-1,-1]  // arm flung out right
-        frame0[5]  = [-1,-1,-1, 2, 3, 3, 3, 2, 2,-1,-1,-1]  // jersey shifted
-        frame0[6]  = [-1,-1,-1, 7, 7, 7, 7, 7, 2,-1,-1,-1]  // stripe
-        frame0[7]  = [-1,-1,-1, 2, 3, 3, 3, 2, 2,-1,-1,-1]  // jersey bottom
-        frame0[8]  = [-1,-1,-1, 0, 2, 2, 2, 2, 0,-1,-1,-1]  // no stick visible (dropped)
+        frame0[7]  = [-1,-1,-1,-1,-1, 2, 2, 3, 3, 2, 0,-1,-1,-1,-1,-1]  // torso jolted back
+        frame0[8]  = [-1,-1,-1,-1, 2, 3, 3, 2, 0,-1,-1,-1,-1,-1,-1,-1]
+        frame0[9]  = [-1,-1,-1,-1, 2, 7, 7, 2,-1,-1,-1,-1,-1,-1,-1,-1]  // no stick
+        frame0[10] = [-1,-1,-1,-1, 2, 2, 3, 2,-1,-1,-1,-1,-1,-1,-1,-1]
+        frame0[11] = [-1,-1,-1,-1, 4, 4, 4, 4,-1,-1,-1,-1,-1,-1,-1,-1]  // no stick
+        frame0[14] = [-1,-1,-1, 5, 5, 5,-1, 5, 5,-1,-1,-1,-1,-1,-1,-1]
+        frame0[15] = [-1,-1,-1, 5, 5,-1,-1,-1, 5, 5,-1,-1,-1,-1,-1,-1]
+        frame0[16] = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
 
-        // Frame 1: Stumbling - off balance
+        // Frame 1: Stumbling forward, legs wide
         var frame1 = base
-        frame1[4]  = [-1, 2, 2, 3, 3, 3, 2, 2,-1,-1,-1,-1]  // leaning forward
-        frame1[5]  = [-1, 2, 2, 3, 3, 3, 2, 2,-1,-1,-1,-1]
-        frame1[6]  = [-1, 2, 7, 7, 7, 7, 7, 2,-1,-1,-1,-1]
-        frame1[7]  = [-1, 2, 2, 3, 3, 3, 2, 2,-1,-1,-1,-1]
-        frame1[8]  = [-1, 0, 2, 2, 2, 2, 2, 0,-1,-1,-1,-1]
-        frame1[11] = [-1,-1, 4, 4,-1,-1,-1, 4, 4,-1,-1,-1]  // legs spread
-        frame1[12] = [-1, 4, 4,-1,-1,-1,-1,-1, 4, 4,-1,-1]  // stumbling
-        frame1[13] = [-1, 5, 5,-1,-1,-1,-1,-1, 5, 5,-1,-1]
-        frame1[14] = [ 5, 5, 5,-1,-1,-1,-1,-1, 5, 5, 5,-1]
-        frame1[15] = [ 5, 5,-1,-1,-1,-1,-1,-1,-1, 5, 5,-1]
+        frame1[7]  = [-1,-1,-1, 2, 2, 3, 3, 2,-1,-1,-1,-1,-1,-1,-1,-1]  // leaning forward
+        frame1[8]  = [-1,-1, 2, 2, 3, 3, 2, 0,-1,-1,-1,-1,-1,-1,-1,-1]
+        frame1[9]  = [-1,-1, 2, 7, 7, 7, 2,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+        frame1[10] = [-1,-1, 2, 2, 3, 2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+        frame1[13] = [-1,-1,-1, 4, 4,-1,-1,-1, 4, 4,-1,-1,-1,-1,-1,-1]  // legs wide (no stick)
+        frame1[14] = [-1,-1, 7, 5,-1,-1,-1,-1, 5, 7,-1,-1,-1,-1,-1,-1]
+        frame1[15] = [-1, 5, 5, 5,-1,-1,-1, 5, 5, 5,-1,-1,-1,-1,-1,-1]
+        frame1[16] = [-1, 5, 5,-1,-1,-1,-1,-1, 5, 5,-1,-1,-1,-1,-1,-1]
 
         return [frame0, frame1]
     }
@@ -363,28 +351,36 @@ final class PixelArt {
         ]
     }
 
-    // MARK: - Goalie Base Template (14x18)
+    // MARK: - Goalie Base Template (16x22, side-angle view facing right)
 
+    /// Goalie side-angle profile: wider/blockier with visible pads, blocker, trapper, goalie stick.
+    /// Palette: 0=skin, 1=helmet/mask, 2=jersey, 3=jersey accent, 4=pants, 5=skates, 6=pads, 7=stripe, 8=blocker/glove
+    /// 16 columns x 22 rows
     private static func goalieBaseData() -> [[Int]] {
         return [
-            [-1,-1,-1,-1,-1, 1, 1, 1, 1,-1,-1,-1,-1,-1],  // row 0: helmet top
-            [-1,-1,-1,-1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1],  // row 1: helmet
-            [-1,-1,-1,-1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1],  // row 2: mask
-            [-1,-1,-1,-1, 1, 0, 1, 1, 0, 1,-1,-1,-1,-1],  // row 3: face
-            [-1,-1,-1, 2, 2, 3, 3, 3, 3, 2, 2,-1,-1,-1],  // row 4: shoulders
-            [-1,-1, 8, 2, 2, 3, 3, 3, 3, 2, 2, 8,-1,-1],  // row 5: jersey + blocker/glove
-            [-1,-1, 8, 2, 7, 7, 7, 7, 7, 7, 2, 8,-1,-1],  // row 6: jersey stripe
-            [-1,-1, 8, 2, 2, 3, 3, 3, 3, 2, 2, 8,-1,-1],  // row 7: jersey bottom
-            [-1,-1,-1, 2, 2, 2, 2, 2, 2, 2, 2,-1,-1,-1],  // row 8: waist
-            [-1,-1,-1, 4, 4, 4, 4, 4, 4, 4, 4,-1,-1,-1],  // row 9: pants
-            [-1,-1, 6, 6, 4, 4, 4, 4, 4, 4, 6, 6,-1,-1],  // row 10: pants + pad edges
-            [-1,-1, 6, 6, 4, 4,-1,-1, 4, 4, 6, 6,-1,-1],  // row 11: legs with pads
-            [-1,-1, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6,-1,-1],  // row 12: leg pads
-            [-1,-1, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6,-1,-1],  // row 13: leg pads
-            [-1,-1, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6,-1,-1],  // row 14: leg pads lower
-            [-1, 5, 5, 6, 6, 5,-1,-1, 5, 6, 6, 5, 5,-1],  // row 15: skate + pad base
-            [-1, 5, 5, 5, 5, 5,-1,-1, 5, 5, 5, 5, 5,-1],  // row 16: skate blades
-            [-1, 5, 5,-1,-1,-1,-1,-1,-1,-1,-1, 5, 5,-1],  // row 17: blade edges
+            //  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+            [-1,-1,-1,-1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1,-1],  // row 0:  helmet top (cage mask)
+            [-1,-1,-1, 1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1],  // row 1:  helmet/mask wide
+            [-1,-1,-1, 1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1],  // row 2:  mask cage front
+            [-1,-1,-1, 1, 1, 1, 1, 0, 0, 1,-1,-1,-1,-1,-1,-1],  // row 3:  mask + eye slit
+            [-1,-1,-1,-1, 1, 1, 0, 0, 0,-1,-1,-1,-1,-1,-1,-1],  // row 4:  chin area
+            [-1,-1,-1, 2, 2, 2, 3, 3, 3, 2, 2,-1,-1,-1,-1,-1],  // row 5:  shoulders (wider than skater)
+            [-1,-1, 8, 2, 2, 3, 3, 3, 3, 2, 2,-1,-1,-1,-1,-1],  // row 6:  jersey + blocker arm (back)
+            [-1,-1, 8, 2, 7, 7, 7, 7, 7, 2, 2, 8,-1,-1,-1,-1],  // row 7:  jersey stripe + trapper (front)
+            [-1,-1,-1, 2, 2, 3, 3, 3, 2, 2, 8, 8,-1,-1,-1,-1],  // row 8:  jersey lower + trapper glove
+            [-1,-1,-1, 2, 2, 2, 3, 2, 2, 0,-1, 6,-1,-1,-1,-1],  // row 9:  waist + hand on goalie stick
+            [-1,-1,-1, 4, 4, 4, 4, 4, 4,-1,-1, 6,-1,-1,-1,-1],  // row 10: pants
+            [-1,-1,-1, 4, 4, 4, 4, 4, 4,-1,-1, 6,-1,-1,-1,-1],  // row 11: pants
+            [-1,-1, 6, 6, 4, 4, 4, 4, 6, 6,-1, 6,-1,-1,-1,-1],  // row 12: pants + pad edges
+            [-1,-1, 6, 6, 6, 4,-1, 4, 6, 6,-1, 6,-1,-1,-1,-1],  // row 13: legs with pads
+            [-1,-1, 6, 6, 6, 6,-1, 6, 6, 6,-1, 6,-1,-1,-1,-1],  // row 14: leg pads
+            [-1,-1, 6, 6, 6, 6,-1, 6, 6, 6,-1, 6,-1,-1,-1,-1],  // row 15: leg pads lower
+            [-1,-1, 6, 6, 6, 6,-1, 6, 6, 6, 6, 6,-1,-1,-1,-1],  // row 16: pad base + stick blade
+            [-1, 5, 5, 6, 6, 5,-1, 5, 6, 6, 6, 6, 6,-1,-1,-1],  // row 17: skates + blade
+            [-1, 5, 5, 5, 5, 5,-1, 5, 5, 5, 5, 6, 6,-1,-1,-1],  // row 18: skate blades
+            [-1, 5, 5,-1,-1,-1,-1,-1, 5, 5,-1,-1, 6,-1,-1,-1],  // row 19: blade edges + stick toe
+            [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],  // row 20: empty
+            [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1],  // row 21: empty
         ]
     }
 
@@ -441,87 +437,101 @@ final class PixelArt {
         return textures
     }
 
-    // MARK: - Goalie Save Left Frames (2 frames)
+    // MARK: - Goalie Save Left Frames (2 frames, side-angle)
 
     private static func goalieSaveLeftFrames() -> [[[Int]]] {
         let base = goalieBaseData()
+        let w = base[0].count  // 16
 
-        // Frame 0: Lean left, blocker hand extended
+        // Frame 0: Lean/shift toward left (up on screen), blocker extended
         var frame0 = base
-        frame0[3]  = [-1,-1,-1, 1, 0, 1, 1, 0, 1,-1,-1,-1,-1,-1]  // head shifted left
-        frame0[4]  = [-1,-1, 2, 2, 3, 3, 3, 3, 2, 2,-1,-1,-1,-1]  // shoulders shifted left
-        frame0[5]  = [ 8, 8, 8, 2, 3, 3, 3, 3, 2, 2, 8,-1,-1,-1]  // blocker extended far left
-        frame0[6]  = [ 8, 8, 8, 7, 7, 7, 7, 7, 7, 2, 8,-1,-1,-1]  // stripe shifted
-        frame0[7]  = [-1,-1, 8, 2, 3, 3, 3, 3, 2, 2, 8,-1,-1,-1]  // jersey bottom
-        frame0[10] = [-1, 6, 6, 4, 4, 4, 4, 4, 4, 6, 6,-1,-1,-1]  // pads shifted left
-        frame0[11] = [-1, 6, 6, 4, 4,-1,-1, 4, 4, 6, 6,-1,-1,-1]  // legs shifted left
+        // Shift upper body left by 1
+        for r in 0...9 {
+            let row = base[r]
+            var shifted = [Int](repeating: -1, count: w)
+            for c in 0..<row.count {
+                if row[c] != -1 {
+                    let newC = c - 1
+                    if newC >= 0 { shifted[newC] = row[c] }
+                }
+            }
+            frame0[r] = shifted
+        }
+        // Extend blocker arm further
+        frame0[6]  = [ 8, 8, 2, 2, 3, 3, 3, 3, 2, 2,-1,-1,-1,-1,-1,-1]
+        frame0[7]  = [ 8, 8, 2, 7, 7, 7, 7, 7, 2, 2, 8,-1,-1,-1,-1,-1]
 
         // Frame 1: Full stretch left
         var frame1 = frame0
-        frame1[5]  = [ 8, 8, 8, 8, 2, 3, 3, 3, 2, 2, 8,-1,-1,-1]  // blocker even further
-        frame1[12] = [-1, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6,-1,-1,-1]  // pads shifted
-        frame1[13] = [-1, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6,-1,-1,-1]
-        frame1[14] = [-1, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6,-1,-1,-1]
+        frame1[6]  = [ 8, 8, 8, 2, 3, 3, 3, 3, 2,-1,-1,-1,-1,-1,-1,-1]
+        frame1[7]  = [ 8, 8, 8, 7, 7, 7, 7, 7, 2, 2, 8,-1,-1,-1,-1,-1]
 
         return [frame0, frame1]
     }
 
-    // MARK: - Goalie Save Right Frames (2 frames)
+    // MARK: - Goalie Save Right Frames (2 frames, side-angle)
 
     private static func goalieSaveRightFrames() -> [[[Int]]] {
         let base = goalieBaseData()
+        let w = base[0].count  // 16
 
-        // Frame 0: Lean right, glove hand extended
+        // Frame 0: Lean/shift toward right (down on screen), trapper extended
         var frame0 = base
-        frame0[3]  = [-1,-1,-1,-1,-1, 1, 0, 1, 1, 0, 1,-1,-1,-1]  // head shifted right
-        frame0[4]  = [-1,-1,-1,-1, 2, 2, 3, 3, 3, 3, 2, 2,-1,-1]  // shoulders shifted right
-        frame0[5]  = [-1,-1,-1, 8, 2, 2, 3, 3, 3, 3, 2, 8, 8, 8]  // glove extended far right
-        frame0[6]  = [-1,-1,-1, 8, 2, 7, 7, 7, 7, 7, 7, 8, 8, 8]  // stripe shifted
-        frame0[7]  = [-1,-1,-1, 8, 2, 2, 3, 3, 3, 3, 2, 8,-1,-1]  // jersey bottom
-        frame0[10] = [-1,-1,-1, 6, 6, 4, 4, 4, 4, 4, 4, 6, 6,-1]  // pads shifted right
-        frame0[11] = [-1,-1,-1, 6, 6, 4, 4,-1,-1, 4, 4, 6, 6,-1]  // legs shifted right
+        for r in 0...9 {
+            let row = base[r]
+            var shifted = [Int](repeating: -1, count: w)
+            for c in stride(from: row.count - 1, through: 0, by: -1) {
+                if row[c] != -1 {
+                    let newC = c + 1
+                    if newC < w { shifted[newC] = row[c] }
+                }
+            }
+            frame0[r] = shifted
+        }
+        // Extend trapper glove further
+        frame0[7]  = [-1,-1,-1,-1, 2, 7, 7, 7, 7, 7, 2, 2, 8, 8,-1,-1]
+        frame0[8]  = [-1,-1,-1,-1, 2, 2, 3, 3, 2, 2, 8, 8, 8,-1,-1,-1]
 
         // Frame 1: Full stretch right
         var frame1 = frame0
-        frame1[5]  = [-1,-1,-1, 8, 2, 2, 3, 3, 3, 2, 8, 8, 8, 8]  // glove even further
-        frame1[12] = [-1,-1,-1, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6,-1]
-        frame1[13] = [-1,-1,-1, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6,-1]
-        frame1[14] = [-1,-1,-1, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6,-1]
+        frame1[7]  = [-1,-1,-1,-1,-1, 2, 7, 7, 7, 7, 2, 2, 8, 8, 8,-1]
+        frame1[8]  = [-1,-1,-1,-1,-1, 2, 3, 3, 2, 2, 8, 8, 8, 8,-1,-1]
 
         return [frame0, frame1]
     }
 
-    // MARK: - Goalie Butterfly Frames (2 frames)
+    // MARK: - Goalie Butterfly Frames (2 frames, side-angle)
 
     private static func goalieButterflyFrames() -> [[[Int]]] {
         let base = goalieBaseData()
 
-        // Frame 0: Dropping down - knees bending, pads starting to spread
+        // Frame 0: Dropping down - knees bending, pads spreading
         var frame0 = base
-        frame0[8]  = [-1,-1, 8, 2, 2, 2, 2, 2, 2, 2, 2, 8,-1,-1]  // arms out wider
-        frame0[9]  = [-1,-1,-1, 4, 4, 4, 4, 4, 4, 4, 4,-1,-1,-1]  // pants
-        frame0[10] = [-1, 6, 6, 6, 4, 4, 4, 4, 4, 4, 6, 6, 6,-1]  // pads wider
-        frame0[11] = [-1, 6, 6, 6, 6, 4, 4, 4, 4, 6, 6, 6, 6,-1]  // legs spreading
-        frame0[12] = [ 6, 6, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6, 6, 6]  // pads wide
-        frame0[13] = [ 6, 6, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6, 6, 6]  // pads wide
-        frame0[14] = [ 6, 6, 6, 6, 6, 6,-1,-1, 6, 6, 6, 6, 6, 6]  // pads on ice
-        frame0[15] = [ 5, 5, 5, 6, 6, 5,-1,-1, 5, 6, 6, 5, 5, 5]  // skates wide
-        frame0[16] = [ 5, 5, 5, 5, 5, 5,-1,-1, 5, 5, 5, 5, 5, 5]  // blades wide
-        frame0[17] = [ 5, 5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 5, 5]  // blade tips far out
+        frame0[8]  = [-1, 8, 2, 2, 3, 3, 3, 2, 2, 8, 8,-1,-1,-1,-1,-1]  // arms wider
+        frame0[12] = [-1, 6, 6, 6, 6, 4, 4, 4, 6, 6, 6,-1,-1,-1,-1,-1]  // pads wider
+        frame0[13] = [ 6, 6, 6, 6, 6, 6,-1, 6, 6, 6, 6,-1,-1,-1,-1,-1]  // pads spreading
+        frame0[14] = [ 6, 6, 6, 6, 6, 6,-1, 6, 6, 6, 6,-1,-1,-1,-1,-1]  // pads on ice
+        frame0[15] = [ 6, 6, 6, 6, 6, 6,-1, 6, 6, 6, 6,-1,-1,-1,-1,-1]  // pads
+        frame0[16] = [ 6, 6, 6, 6, 6, 6,-1, 6, 6, 6, 6, 6,-1,-1,-1,-1]  // pad base
+        frame0[17] = [ 5, 5, 5, 6, 6, 5,-1, 5, 6, 6, 6, 6, 6,-1,-1,-1]  // skates wide
+        frame0[18] = [ 5, 5, 5, 5, 5, 5,-1, 5, 5, 5, 5, 6, 6,-1,-1,-1]  // blades wide
+        frame0[19] = [ 5, 5,-1,-1,-1,-1,-1,-1, 5, 5,-1,-1, 6,-1,-1,-1]
+        frame0[20] = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+        frame0[21] = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
 
         // Frame 1: Full butterfly - completely down, pads flush on ice
         var frame1 = base
-        // Upper body stays roughly the same but lower
-        frame1[8]  = [-1, 8, 8, 2, 2, 2, 2, 2, 2, 2, 2, 8, 8,-1]  // arms wide with blocker/glove
-        frame1[9]  = [-1,-1,-1, 4, 4, 4, 4, 4, 4, 4, 4,-1,-1,-1]  // pants
-        frame1[10] = [-1, 6, 6, 6, 4, 4, 4, 4, 4, 4, 6, 6, 6,-1]  // pads start
-        frame1[11] = [ 6, 6, 6, 6, 6, 4, 4, 4, 4, 6, 6, 6, 6, 6]  // pads spreading
-        frame1[12] = [ 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]  // pads fully flat
-        frame1[13] = [ 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]  // pads fully flat
-        frame1[14] = [ 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]  // pads on ice
-        frame1[15] = [ 5, 5, 5, 6, 6, 5, 5, 5, 5, 6, 6, 5, 5, 5]  // skates under pads
-        frame1[16] = [ 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]  // blades flat
-        frame1[17] = [ 5, 5,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1, 5, 5]  // blade edges
+        frame1[8]  = [ 8, 8, 2, 2, 3, 3, 3, 2, 2, 8, 8, 8,-1,-1,-1,-1]  // arms very wide
+        frame1[12] = [ 6, 6, 6, 6, 6, 4, 4, 4, 6, 6, 6, 6,-1,-1,-1,-1]
+        frame1[13] = [ 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,-1,-1,-1,-1]  // pads fully flat
+        frame1[14] = [ 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,-1,-1,-1,-1]
+        frame1[15] = [ 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,-1,-1,-1,-1]
+        frame1[16] = [ 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,-1,-1,-1]
+        frame1[17] = [ 5, 5, 5, 6, 6, 5, 5, 5, 6, 6, 5, 6, 6,-1,-1,-1]
+        frame1[18] = [ 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6,-1,-1,-1]
+        frame1[19] = [ 5, 5,-1,-1,-1,-1,-1,-1, 5, 5,-1,-1, 6,-1,-1,-1]
+        frame1[20] = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
+        frame1[21] = [-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
 
         return [frame0, frame1]
     }
@@ -945,12 +955,34 @@ final class PixelArt {
 
             let p = kPixelSize
             let rect = CGRect(origin: .zero, size: size)
+            let cornerSize = p
 
-            // Border
+            // Clear canvas
+            gc.setFillColor(UIColor.clear.cgColor)
+            gc.setBlendMode(.copy)
+            gc.fill(CGRect(x: 0, y: 0, width: size.width + p, height: size.height + p))
+            gc.setBlendMode(.normal)
+
+            // Drop shadow (offset down-right by 1 pixel)
+            UIColor.black.withAlphaComponent(0.4).setFill()
+            gc.fill(CGRect(x: p, y: p, width: rect.width - p, height: rect.height - p))
+
+            // Border fill
             if let bc = borderColor {
                 bc.setFill()
-                gc.fill(rect)
+            } else {
+                color.setFill()
             }
+            gc.fill(rect)
+
+            // Cut pixel corners for rounded look
+            UIColor.clear.setFill()
+            gc.setBlendMode(.copy)
+            gc.fill(CGRect(x: 0, y: 0, width: cornerSize, height: cornerSize))
+            gc.fill(CGRect(x: rect.width - cornerSize, y: 0, width: cornerSize, height: cornerSize))
+            gc.fill(CGRect(x: 0, y: rect.height - cornerSize, width: cornerSize, height: cornerSize))
+            gc.fill(CGRect(x: rect.width - cornerSize, y: rect.height - cornerSize, width: cornerSize, height: cornerSize))
+            gc.setBlendMode(.normal)
 
             // Inner fill (inset by pixel border)
             let borderWidth = borderColor != nil ? p : 0
@@ -958,13 +990,32 @@ final class PixelArt {
             color.setFill()
             gc.fill(inner)
 
-            // Pixel-art highlight (top edge)
-            UIColor.white.withAlphaComponent(0.2).setFill()
-            gc.fill(CGRect(x: inner.minX, y: inner.minY, width: inner.width, height: p))
+            // Gradient effect: 3-band vertical fill for subtle depth
+            let bandHeight = inner.height / 3.0
+            UIColor.white.withAlphaComponent(0.08).setFill()
+            gc.fill(CGRect(x: inner.minX, y: inner.minY, width: inner.width, height: bandHeight))
+            UIColor.black.withAlphaComponent(0.10).setFill()
+            gc.fill(CGRect(x: inner.minX, y: inner.minY + bandHeight * 2, width: inner.width, height: bandHeight))
 
-            // Pixel-art shadow (bottom edge)
-            UIColor.black.withAlphaComponent(0.3).setFill()
+            // Inner highlight - bright top edge (2px for visibility)
+            UIColor.white.withAlphaComponent(0.25).setFill()
+            gc.fill(CGRect(x: inner.minX, y: inner.minY, width: inner.width, height: p))
+            UIColor.white.withAlphaComponent(0.10).setFill()
+            gc.fill(CGRect(x: inner.minX, y: inner.minY + p, width: inner.width, height: p))
+
+            // Left edge highlight
+            UIColor.white.withAlphaComponent(0.12).setFill()
+            gc.fill(CGRect(x: inner.minX, y: inner.minY + p, width: p, height: inner.height - 2 * p))
+
+            // Inner shadow - dark bottom edge (2px)
+            UIColor.black.withAlphaComponent(0.35).setFill()
             gc.fill(CGRect(x: inner.minX, y: inner.maxY - p, width: inner.width, height: p))
+            UIColor.black.withAlphaComponent(0.15).setFill()
+            gc.fill(CGRect(x: inner.minX, y: inner.maxY - 2 * p, width: inner.width, height: p))
+
+            // Right edge shadow
+            UIColor.black.withAlphaComponent(0.18).setFill()
+            gc.fill(CGRect(x: inner.maxX - p, y: inner.minY + p, width: p, height: inner.height - 2 * p))
         }
         let tex = SKTexture(image: image)
         tex.filteringMode = .nearest
@@ -973,27 +1024,75 @@ final class PixelArt {
 
     // MARK: - Panel/Window Texture
 
-    static func panelTexture(width: CGFloat, height: CGFloat) -> SKTexture {
+    static func panelTexture(width: CGFloat, height: CGFloat, headerHeight: CGFloat = 0) -> SKTexture {
         let size = CGSize(width: width, height: height)
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { ctx in
             let gc = ctx.cgContext
             gc.setAllowsAntialiasing(false)
+            gc.interpolationQuality = .none
 
             let p = kPixelSize
             let rect = CGRect(origin: .zero, size: size)
 
-            // Outer border
-            UIColor(hex: "444466").setFill()
+            // Drop shadow behind panel
+            UIColor.black.withAlphaComponent(0.35).setFill()
+            gc.fill(CGRect(x: p, y: p, width: rect.width, height: rect.height))
+
+            // Outer border (polished)
+            RetroPalette.panelBorder.setFill()
             gc.fill(rect)
 
             // Inner background
             RetroPalette.darkPanel.setFill()
             gc.fill(rect.insetBy(dx: p, dy: p))
 
-            // Top highlight
-            UIColor.white.withAlphaComponent(0.1).setFill()
+            // Inner bevel - top highlight
+            UIColor.white.withAlphaComponent(0.12).setFill()
             gc.fill(CGRect(x: p, y: p, width: rect.width - 2 * p, height: p))
+
+            // Inner bevel - left highlight
+            UIColor.white.withAlphaComponent(0.06).setFill()
+            gc.fill(CGRect(x: p, y: 2 * p, width: p, height: rect.height - 3 * p))
+
+            // Inner bevel - bottom shadow
+            UIColor.black.withAlphaComponent(0.25).setFill()
+            gc.fill(CGRect(x: p, y: rect.height - 2 * p, width: rect.width - 2 * p, height: p))
+
+            // Inner bevel - right shadow
+            UIColor.black.withAlphaComponent(0.15).setFill()
+            gc.fill(CGRect(x: rect.width - 2 * p, y: 2 * p, width: p, height: rect.height - 3 * p))
+
+            // Subtle dithered noise texture (retro look)
+            UIColor.white.withAlphaComponent(0.02).setFill()
+            let noiseStep = p * 2
+            let innerRect = rect.insetBy(dx: 2 * p, dy: 2 * p)
+            var ny = innerRect.minY
+            var rowIndex = 0
+            while ny < innerRect.maxY {
+                var nx = innerRect.minX + (rowIndex % 2 == 0 ? 0 : noiseStep)
+                while nx < innerRect.maxX {
+                    gc.fill(CGRect(x: nx, y: ny, width: p, height: p))
+                    nx += noiseStep * 2
+                }
+                ny += noiseStep
+                rowIndex += 1
+            }
+
+            // Header bar if specified
+            if headerHeight > 0 {
+                let headerRect = CGRect(x: p, y: p, width: rect.width - 2 * p, height: headerHeight)
+                RetroPalette.headerBar.setFill()
+                gc.fill(headerRect)
+
+                // Header bottom separator
+                RetroPalette.panelBorder.setFill()
+                gc.fill(CGRect(x: p, y: p + headerHeight, width: rect.width - 2 * p, height: p))
+
+                // Header top highlight
+                UIColor.white.withAlphaComponent(0.08).setFill()
+                gc.fill(CGRect(x: 2 * p, y: p, width: rect.width - 4 * p, height: p))
+            }
         }
         let tex = SKTexture(image: image)
         tex.filteringMode = .nearest

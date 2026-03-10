@@ -106,6 +106,8 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         setupHUD()
         setupAI()
 
+        // Position skaters in formation before pregame message
+        positionForFaceoff()
         startPregame()
     }
 
@@ -624,7 +626,10 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             guard let self = self else { return }
             self.puck.resetToCenter()
 
-            if self.periodClock <= 0 {
+            // Overtime is sudden death: game ends immediately on goal
+            if self.period > GameConfig.periodsPerGame {
+                self.endGame()
+            } else if self.periodClock <= 0 {
                 self.endPeriod()
             } else {
                 self.startFaceoff(nextPossession: nextPossession)
@@ -908,6 +913,9 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
     }
 
     private func updateLoosePuckRecovery(currentTime: TimeInterval, dt: TimeInterval) {
+        // Guard against race condition: physics contact may have already resolved possession
+        guard puck.isLoose else { return }
+
         loosePuckTimer -= dt
         let playerTeamIndex = isPlayerHome ? 0 : 1
         let puckVel = puck.physicsBody?.velocity ?? .zero
@@ -937,7 +945,8 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             controlled.moveToward(moveTarget)
         }
 
-        // Proximity pickup
+        // Proximity pickup (skip if physics contact already resolved this frame)
+        guard puck.isLoose else { return }
         for skater in allSkaters where !skater.posType.isGoalie {
             let dist = skater.position.distance(to: puck.position)
             if dist < GameConfig.skaterRadius * 2.5 {
@@ -993,8 +1002,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             opponentShotClock = max(opponentShotClock - 2, 0)
 
         case .shoot(let target, let power):
-            puck.shoot(toward: target, power: power)
-            carrier.playShootAnimation()
+            puck.shoot(toward: target, power: power)  // shoot() calls playShootAnimation() on the carrier
             showMessage("SHOT!", duration: 0.3)
         }
     }
@@ -1360,13 +1368,12 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
     }
 
     private func performShot(toward target: CGPoint, power: CGFloat) {
-        guard let carrier = puck.carriedBy else { return }
+        guard puck.carriedBy != nil else { return }
 
         for skater in playerSkaters { skater.hidePassTarget() }
         shootIndicator.alpha = 0
-        carrier.playShootAnimation()
         showMessage("SHOT!", duration: 0.4)
-        puck.shoot(toward: target, power: power)
+        puck.shoot(toward: target, power: power)  // shoot() calls playShootAnimation() on the carrier
         selectedSkater?.isSelected = false
     }
 
@@ -1448,18 +1455,19 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         }
 
         // Puck hits goal trigger zone -> GOAL
+        // Attribution based on which goal: right goal = team attacking right scored,
+        // left goal = team attacking left scored. No velocity check needed since
+        // the trigger zone is positioned inside the net.
         if (a == PhysicsCategory.puck && b == PhysicsCategory.goal) ||
            (a == PhysicsCategory.goal && b == PhysicsCategory.puck) {
             let goalNode = a == PhysicsCategory.goal ? contact.bodyA.node : contact.bodyB.node
 
-            if (goalNode?.name == "rightGoal" && attackingRight) ||
-               (goalNode?.name == "leftGoal" && !attackingRight) {
+            if goalNode?.name == "rightGoal" {
                 puck.hasBeenShot = false
-                handleGoalScored(byPlayerTeam: true)
-            } else if (goalNode?.name == "leftGoal" && attackingRight) ||
-                      (goalNode?.name == "rightGoal" && !attackingRight) {
+                handleGoalScored(byPlayerTeam: attackingRight)
+            } else if goalNode?.name == "leftGoal" {
                 puck.hasBeenShot = false
-                handleGoalScored(byPlayerTeam: false)
+                handleGoalScored(byPlayerTeam: !attackingRight)
             }
             return
         }
@@ -1503,7 +1511,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             (.rightWing,    CGPoint(x: -50, y: -hh * 0.4)),
             (.leftDefense,  CGPoint(x: -hw * 0.4, y: hh * 0.3)),
             (.rightDefense, CGPoint(x: -hw * 0.4, y: -hh * 0.3)),
-            (.goalie,       CGPoint(x: -hw / 2 + 30, y: 0)),
+            (.goalie,       CGPoint(x: -hw + GameConfig.goalDepth + 20, y: 0)),
         ]
 
         for (pos, point) in homePositions {
@@ -1519,7 +1527,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             (.rightWing,    CGPoint(x: 50, y: hh * 0.4)),
             (.leftDefense,  CGPoint(x: hw * 0.4, y: -hh * 0.3)),
             (.rightDefense, CGPoint(x: hw * 0.4, y: hh * 0.3)),
-            (.goalie,       CGPoint(x: hw / 2 - 30, y: 0)),
+            (.goalie,       CGPoint(x: hw - GameConfig.goalDepth - 20, y: 0)),
         ]
 
         for (pos, point) in awayPositions {

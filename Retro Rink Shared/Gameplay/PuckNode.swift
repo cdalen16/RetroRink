@@ -103,15 +103,18 @@ class PuckNode: SKNode {
     func updatePosition() {
         guard let carrier = carriedBy else { return }
 
-        // Direction-dependent carrier offset: puck in front of skater
-        let directionMultiplier: CGFloat = carrier.physicsBody?.velocity.dx ?? 0 >= 0 ? 1 : -1
-        let offsetX: CGFloat
+        // Position puck at the stick blade location (front-bottom of the side-angle sprite)
+        // The stick blade extends forward (in facing direction) and slightly below center
+        let directionMultiplier: CGFloat
         if abs(carrier.physicsBody?.velocity.dx ?? 0) > 10 {
-            offsetX = directionMultiplier * 10
+            directionMultiplier = (carrier.physicsBody?.velocity.dx ?? 0) >= 0 ? 1 : -1
         } else {
-            offsetX = carrier.teamIndex == 0 ? 10 : -10
+            directionMultiplier = carrier.teamIndex == 0 ? 1 : -1
         }
-        self.position = CGPoint(x: carrier.position.x + offsetX, y: carrier.position.y - 2)
+        // Stick blade is ~10px forward and ~6px below center of the sprite
+        let offsetX = directionMultiplier * 10
+        let offsetY: CGFloat = -6
+        self.position = CGPoint(x: carrier.position.x + offsetX, y: carrier.position.y + offsetY)
     }
 
     // MARK: - Trail Update (for loose/shot puck)
@@ -122,36 +125,34 @@ class PuckNode: SKNode {
         let speed = hypot(vel.dx, vel.dy)
 
         if speed > 30 {
+            let worldPos = self.position
+
             // Shift positions down the array
             for i in stride(from: trailCount - 1, through: 1, by: -1) {
                 trailPositions[i] = trailPositions[i - 1]
             }
-            trailPositions[0] = .zero  // relative to puck node
+            // Store current world position at the head
+            trailPositions[0] = worldPos
 
             // Update dot positions and visibility
-            let worldPos = self.position
+            // Trail dots are children of this node (which is at worldPos),
+            // so we convert past world positions to local coords by subtracting current worldPos.
             for i in 0..<trailCount {
                 if i == 0 {
                     trailDots[i].isHidden = true
                     continue
                 }
-                let prevWorldPos = trailPositions[i]
-                if prevWorldPos == .zero && i > 0 {
+                if trailPositions[i] == .zero {
                     trailDots[i].isHidden = true
                 } else {
                     trailDots[i].isHidden = false
-                    // Trail dots are children of this node, so position relative to puck
-                    let offset = CGPoint(
-                        x: trailPositions[i].x - trailPositions[0].x,
-                        y: trailPositions[i].y - trailPositions[0].y
+                    trailDots[i].position = CGPoint(
+                        x: trailPositions[i].x - worldPos.x,
+                        y: trailPositions[i].y - worldPos.y
                     )
-                    trailDots[i].position = offset
                     trailDots[i].alpha = CGFloat(trailCount - i) / CGFloat(trailCount) * 0.35
                 }
             }
-
-            // Store current world position for next frame's trail calc
-            trailPositions[0] = worldPos
         } else {
             // Too slow, hide trail
             for dot in trailDots { dot.isHidden = true }
