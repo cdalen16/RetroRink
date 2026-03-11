@@ -178,18 +178,17 @@ final class PixelArt {
 
     private static func skaterSkatingFrames() -> [[[Int]]] {
         let base = skaterBaseData()
-        // Side-view skating: only the BACK leg pushes backward as a whole unit
-        // from hip (row 11) to blade (row 15). Front leg stays completely fixed.
-        // Idle front leg: row 11 cols 6-7, row 12 cols 6-7, row 13 cols 7-8,
-        //                 row 14 cols 7-8, row 15 cols 8-9
-        // Idle back leg:  row 11 cols 4-5, row 12 cols 4-5, row 13 cols 4-5,
-        //                 row 14 cols 3-5, row 15 cols 3-4
-        // 2 poses: glide (together) and push (back leg shifts 2px left, hip to blade)
+        // Side-view skating: 2 frames.
+        // Frame 0 (glide): idle pose — both legs visible in normal position.
+        // Frame 1 (push): ONLY back leg extends behind. Front leg stays exactly
+        //   where it is in the idle pose (cols 7-8). Nothing else moves.
 
-        // Frame 0: Legs together (glide) — same as idle
+        // Frame 0: Idle pose (glide)
         let frame0 = base
 
-        // Frame 1: Back leg fully pushed back — entire leg shifts 2px left from hip to blade
+        // Frame 1: Back leg pushes back — whole leg from hip to blade shifts 2px left.
+        // Front leg stays at EXACT same position as idle: row11 cols 6-7, row12 cols 6-7,
+        // row13 col7(4)+col8(7), row14 col7(5)+col8(5), row15 col8(5)+col9(5)
         var frame1 = base
         frame1[11] = [-1,-1,-1, 4, 4,-1, 4, 4,-1,-1, 6,-1,-1,-1,-1,-1]  // back hip at 3-4, front at 6-7
         frame1[12] = [-1,-1, 4, 4,-1,-1, 4, 4,-1,-1, 6,-1,-1,-1,-1,-1]  // back thigh at 2-3, front at 6-7

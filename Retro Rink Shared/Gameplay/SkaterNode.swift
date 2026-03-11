@@ -19,7 +19,6 @@ class SkaterNode: SKNode {
     private var shadowNode: SKShapeNode
     private var selectionRing: SKShapeNode?
     private var numberLabel: SKLabelNode
-    private var puckIndicator: SKShapeNode?
 
     // MARK: - Pre-loaded Textures (left + right variants for direction)
     private var idleTextureRight: SKTexture!
@@ -34,9 +33,7 @@ class SkaterNode: SKNode {
     private let teamColorData: TeamColors
 
     // MARK: - State
-    var hasPuck: Bool = false {
-        didSet { puckIndicator?.isHidden = !hasPuck }
-    }
+    var hasPuck: Bool = false
 
     var isSelected: Bool = false {
         didSet { selectionRing?.isHidden = !isSelected }
@@ -120,17 +117,6 @@ class SkaterNode: SKNode {
         ring.isAntialiased = false
         addChild(ring)
         selectionRing = ring
-
-        // Puck possession indicator (small white dot at stick blade position)
-        let puckDot = SKShapeNode(circleOfRadius: 3)
-        puckDot.fillColor = .white
-        puckDot.strokeColor = .clear
-        puckDot.zPosition = ZPos.skater + 0.5
-        // Position at the stick blade tip: forward and slightly below center
-        puckDot.position = CGPoint(x: teamIndex == 0 ? 10 : -10, y: -6)
-        puckDot.isHidden = true
-        addChild(puckDot)
-        puckIndicator = puckDot
 
         // Physics body — goalies get a wider body and collide with puck to block shots
         let bodyRadius = player.position.isGoalie ? GameConfig.skaterRadius * 1.5 : GameConfig.skaterRadius

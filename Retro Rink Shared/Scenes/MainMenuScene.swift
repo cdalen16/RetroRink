@@ -27,77 +27,12 @@ class MainMenuScene: BaseScene {
         let bg = SKSpriteNode(color: UIColor(hex: "0E0E1A"), size: CGSize(width: w, height: h))
         bg.zPosition = -2
         addChild(bg)
-
-        // Subtle radial vignette using concentric rectangles
-        let steps = 8
-        for i in 0..<steps {
-            let t = CGFloat(i) / CGFloat(steps)
-            let scale = 1.0 - t * 0.5
-            let alpha: CGFloat = t * 0.04
-            let rect = SKSpriteNode(color: UIColor(hex: "1A1A3E").withAlphaComponent(alpha),
-                                     size: CGSize(width: w * scale, height: h * scale))
-            rect.zPosition = -2
-            addChild(rect)
-        }
-
-        // Corner vignette darkening
-        let cornerSize = CGSize(width: w * 0.5, height: h * 0.5)
-        for (cx, cy) in [(-1.0, -1.0), (1.0, -1.0), (-1.0, 1.0), (1.0, 1.0)] {
-            let corner = SKSpriteNode(color: UIColor.black.withAlphaComponent(0.15),
-                                       size: cornerSize)
-            corner.position = CGPoint(x: CGFloat(cx) * w * 0.3, y: CGFloat(cy) * h * 0.3)
-            corner.zPosition = -2
-            addChild(corner)
-        }
     }
 
     // MARK: - Ice Texture Background Effect
 
     private func setupIceTexture() {
-        let w = size.width
-        let h = size.height
-
-        // Animated ice sheen streaks
-        for i in 0..<6 {
-            let streakWidth: CGFloat = CGFloat.random(in: 80...200)
-            let streakHeight: CGFloat = CGFloat.random(in: 1...2)
-            let streak = SKSpriteNode(color: RetroPalette.iceSheen.withAlphaComponent(0.03),
-                                      size: CGSize(width: streakWidth, height: streakHeight))
-            let startY = -h / 2 + CGFloat(i) * (h / 6) + CGFloat.random(in: -20...20)
-            streak.position = CGPoint(x: CGFloat.random(in: -w / 2...w / 2), y: startY)
-            streak.zPosition = -1
-            streak.alpha = 0
-            addChild(streak)
-
-            // Slow shimmer animation
-            let delay = Double.random(in: 0...4)
-            let fadeIn = SKAction.fadeAlpha(to: CGFloat.random(in: 0.02...0.06), duration: Double.random(in: 2...4))
-            let fadeOut = SKAction.fadeAlpha(to: 0, duration: Double.random(in: 2...4))
-            let drift = SKAction.moveBy(x: CGFloat.random(in: -15...15), y: 0, duration: 6.0)
-            let reset = SKAction.run { [w] in
-                streak.position.x = CGFloat.random(in: -w / 2...w / 2)
-            }
-            streak.run(SKAction.sequence([
-                SKAction.wait(forDuration: delay),
-                SKAction.repeatForever(SKAction.sequence([
-                    SKAction.group([fadeIn, drift]),
-                    fadeOut,
-                    reset,
-                ]))
-            ]))
-        }
-
-        // Subtle horizontal scan lines (CRT retro effect)
-        let lineSpacing: CGFloat = 4
-        var y: CGFloat = -h / 2
-        while y < h / 2 {
-            let line = SKSpriteNode(color: UIColor.black.withAlphaComponent(0.06),
-                                    size: CGSize(width: w, height: 1))
-            line.position = CGPoint(x: 0, y: y)
-            line.zPosition = -1
-            addChild(line)
-            y += lineSpacing
-        }
+        // Removed ice sheen streaks and scan lines for a cleaner background
     }
 
     // MARK: - Title

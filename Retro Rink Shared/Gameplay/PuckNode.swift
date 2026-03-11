@@ -161,8 +161,11 @@ class PuckNode: SKNode {
 
     // MARK: - Shooting
     func shoot(toward target: CGPoint, power: CGFloat) {
-        let carrier = carriedBy
+        let formerCarrier = carriedBy
         detach()
+
+        // Temporarily prevent puck from colliding with former carrier
+        formerCarrier?.physicsBody?.collisionBitMask &= ~PhysicsCategory.puck
 
         let dx = target.x - position.x
         let dy = target.y - position.y
@@ -180,7 +183,14 @@ class PuckNode: SKNode {
         timeSinceShot = 0
         shotPower = power
 
-        carrier?.playShootAnimation()
+        formerCarrier?.playShootAnimation()
+
+        // Restore collision after puck has moved away
+        if let carrier = formerCarrier {
+            carrier.run(SKAction.wait(forDuration: 0.15)) {
+                carrier.physicsBody?.collisionBitMask |= PhysicsCategory.puck
+            }
+        }
 
         // Puck flash effect
         let flash = SKAction.sequence([
@@ -193,8 +203,22 @@ class PuckNode: SKNode {
         for i in 0..<trailCount { trailPositions[i] = self.position }
     }
 
-    func pass(toward target: CGPoint, targetID: UUID) {
+    func pass(toward target: CGPoint, targetID: UUID, teammates: [SkaterNode] = []) {
+        let formerCarrier = carriedBy
         detach()
+
+        // Temporarily disable puck collision with ALL teammates so puck isn't deflected
+        var affectedSkaters: [SkaterNode] = []
+        if let carrier = formerCarrier {
+            affectedSkaters.append(carrier)
+        }
+        for mate in teammates {
+            mate.physicsBody?.collisionBitMask &= ~PhysicsCategory.puck
+            affectedSkaters.append(mate)
+        }
+
+        // Also disable puck's own collision with skaters briefly
+        physicsBody?.collisionBitMask &= ~PhysicsCategory.skater
 
         let dx = target.x - position.x
         let dy = target.y - position.y
@@ -218,6 +242,15 @@ class PuckNode: SKNode {
 
         // Reset trail positions
         for i in 0..<trailCount { trailPositions[i] = self.position }
+
+        // Restore all collisions after puck has cleared the area
+        let puckRef = self
+        formerCarrier?.run(SKAction.wait(forDuration: 0.3)) {
+            for skater in affectedSkaters {
+                skater.physicsBody?.collisionBitMask |= PhysicsCategory.puck
+            }
+            puckRef.physicsBody?.collisionBitMask |= PhysicsCategory.skater
+        }
     }
 
     /// Check if the puck has arrived at the pass target. Returns the target skater if arrived.

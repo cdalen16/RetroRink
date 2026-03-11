@@ -358,7 +358,7 @@ class HockeyAI {
     // MARK: - Opponent Offense AI
 
     private var lastOpponentOffenseTime: TimeInterval = 0
-    private let opponentOffenseInterval: TimeInterval = 0.8
+    private let opponentOffenseInterval: TimeInterval = 0.4
 
     /// AI decision for the opponent carrier: skate, pass, or shoot.
     func updateOpponentOffense(
@@ -397,14 +397,18 @@ class HockeyAI {
         let defPressure = nearestDef.map { puckCarrier.position.distance(to: $0.position) } ?? 999
 
         // In shooting range → consider shooting
-        if distToGoal < shootRange && opponentShotClock > 2.0 {
-            let shotChance = 0.2 + Double(reaction) * 0.15 + (opponentShotClock / 20.0) * 0.15
-            if Double.random(in: 0...1) < shotChance {
-                let power = GameConfig.shotSpeedBase + CGFloat.random(in: 0...150) * reaction
-                // Add some inaccuracy
-                let aimOffset = CGFloat.random(in: -20...20)
-                let target = CGPoint(x: goalMouth.x, y: goalMouth.y + aimOffset)
-                return .shoot(target: target, power: power)
+        if distToGoal < shootRange {
+            let closeRange = distToGoal < shootRange * 0.4
+            let clockThreshold: TimeInterval = closeRange ? 0.5 : 2.0
+            if opponentShotClock > clockThreshold {
+                var shotChance = 0.2 + Double(reaction) * 0.15 + (opponentShotClock / 20.0) * 0.15
+                if closeRange { shotChance += 0.4 }  // very likely to shoot when right at the net
+                if Double.random(in: 0...1) < shotChance {
+                    let power = GameConfig.shotSpeedBase + CGFloat.random(in: 0...150) * reaction
+                    let aimOffset = CGFloat.random(in: -20...20)
+                    let target = CGPoint(x: goalMouth.x, y: goalMouth.y + aimOffset)
+                    return .shoot(target: target, power: power)
+                }
             }
         }
 

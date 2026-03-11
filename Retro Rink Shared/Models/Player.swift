@@ -75,6 +75,7 @@ struct Player: Codable, Identifiable, Equatable {
     var checking: Int
     var awareness: Int
     var endurance: Int
+    var faceoff: Int
 
     // Goalie stats (1-99)
     var reflexes: Int
@@ -252,7 +253,7 @@ struct Player: Codable, Identifiable, Equatable {
     // MARK: - Codable (traits default to empty for backward compat)
     enum CodingKeys: String, CodingKey {
         case id, firstName, lastName, position, age, jerseyNumber
-        case speed, shooting, passing, puckHandling, checking, awareness, endurance
+        case speed, shooting, passing, puckHandling, checking, awareness, endurance, faceoff
         case reflexes, positioning, reboundControl
         case salary, contractYears, potential, morale
         case isInjured, injuryWeeks, traits
@@ -275,6 +276,7 @@ struct Player: Codable, Identifiable, Equatable {
         checking = try c.decode(Int.self, forKey: .checking)
         awareness = try c.decode(Int.self, forKey: .awareness)
         endurance = try c.decode(Int.self, forKey: .endurance)
+        faceoff = (try? c.decode(Int.self, forKey: .faceoff)) ?? 50
         reflexes = try c.decode(Int.self, forKey: .reflexes)
         positioning = try c.decode(Int.self, forKey: .positioning)
         reboundControl = try c.decode(Int.self, forKey: .reboundControl)
@@ -309,6 +311,7 @@ struct Player: Codable, Identifiable, Equatable {
         checking: Int,
         awareness: Int,
         endurance: Int,
+        faceoff: Int = 50,
         reflexes: Int,
         positioning: Int,
         reboundControl: Int,
@@ -341,6 +344,7 @@ struct Player: Codable, Identifiable, Equatable {
         self.checking = checking
         self.awareness = awareness
         self.endurance = endurance
+        self.faceoff = faceoff
         self.reflexes = reflexes
         self.positioning = positioning
         self.reboundControl = reboundControl
@@ -460,6 +464,7 @@ struct PlayerGenerator {
             checking: stats["checking"]!,
             awareness: stats["awareness"]!,
             endurance: stats["endurance"]!,
+            faceoff: stats["faceoff"]!,
             reflexes: stats["reflexes"]!,
             positioning: stats["positioning"]!,
             reboundControl: stats["reboundControl"]!,
@@ -502,6 +507,7 @@ struct PlayerGenerator {
                 "checking": Int.random(in: 20...40),
                 "awareness": r(),
                 "endurance": r(),
+                "faceoff": Int.random(in: 30...50),
                 "reflexes": r(),
                 "positioning": r(),
                 "reboundControl": r(),
@@ -520,6 +526,7 @@ struct PlayerGenerator {
             "checking": position.isDefense ? r() : Int.random(in: lowCheck...statMax),
             "awareness": r(),
             "endurance": r(),
+            "faceoff": position == .center ? r() : Int.random(in: Swift.max(statMin - 15, 30)...statMax),
             "reflexes": Int.random(in: 40...60),
             "positioning": Int.random(in: 40...60),
             "reboundControl": Int.random(in: 40...60),

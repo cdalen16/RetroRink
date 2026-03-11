@@ -20,7 +20,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
     private var allSkaters: [SkaterNode] { homeSkaters + awaySkaters }
     private var playerSkaters: [SkaterNode] { isPlayerHome ? homeSkaters : awaySkaters }
     private var opponentSkaters: [SkaterNode] { isPlayerHome ? awaySkaters : homeSkaters }
-    private var attackingRight: Bool { isPlayerHome }
+    private var attackingRight: Bool { true }  // player always attacks right
 
     // MARK: - State
     private var gameState: GameplayState = .pregame
@@ -133,47 +133,51 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
 
     // MARK: - Skaters Setup
     private func setupSkaters() {
-        let homeColors = homeTeam.colors
-        let awayColors = awayTeam.colors
+        // Player team is always teamIndex 0 (left side, attacks right)
+        // Opponent team is always teamIndex 1 (right side, attacks left)
+        let playerTeam = isPlayerHome ? homeTeam! : awayTeam!
+        let opponentTeam = isPlayerHome ? awayTeam! : homeTeam!
+        let playerColors = playerTeam.colors
+        let opponentColors = opponentTeam.colors
 
-        let homeFwdLine = homeTeam.forwardLine(0)
-        let homeDefPair = homeTeam.defensePair(0)
-        let homeGoalie = homeTeam.startingGoaliePlayer
+        let playerFwdLine = playerTeam.forwardLine(0)
+        let playerDefPair = playerTeam.defensePair(0)
+        let playerGoalie = playerTeam.startingGoaliePlayer
 
-        for player in homeFwdLine {
-            let node = SkaterNode(player: player, teamColors: homeColors, teamIndex: 0)
+        for player in playerFwdLine {
+            let node = SkaterNode(player: player, teamColors: playerColors, teamIndex: 0)
             rink.addChild(node)
-            homeSkaters.append(node)
+            if isPlayerHome { homeSkaters.append(node) } else { awaySkaters.append(node) }
         }
-        for player in homeDefPair {
-            let node = SkaterNode(player: player, teamColors: homeColors, teamIndex: 0)
+        for player in playerDefPair {
+            let node = SkaterNode(player: player, teamColors: playerColors, teamIndex: 0)
             rink.addChild(node)
-            homeSkaters.append(node)
+            if isPlayerHome { homeSkaters.append(node) } else { awaySkaters.append(node) }
         }
-        if let goalie = homeGoalie {
-            let node = SkaterNode(player: goalie, teamColors: homeColors, teamIndex: 0)
+        if let goalie = playerGoalie {
+            let node = SkaterNode(player: goalie, teamColors: playerColors, teamIndex: 0)
             rink.addChild(node)
-            homeSkaters.append(node)
+            if isPlayerHome { homeSkaters.append(node) } else { awaySkaters.append(node) }
         }
 
-        let awayFwdLine = awayTeam.forwardLine(0)
-        let awayDefPair = awayTeam.defensePair(0)
-        let awayGoalie = awayTeam.startingGoaliePlayer
+        let oppFwdLine = opponentTeam.forwardLine(0)
+        let oppDefPair = opponentTeam.defensePair(0)
+        let oppGoalie = opponentTeam.startingGoaliePlayer
 
-        for player in awayFwdLine {
-            let node = SkaterNode(player: player, teamColors: awayColors, teamIndex: 1)
+        for player in oppFwdLine {
+            let node = SkaterNode(player: player, teamColors: opponentColors, teamIndex: 1)
             rink.addChild(node)
-            awaySkaters.append(node)
+            if isPlayerHome { awaySkaters.append(node) } else { homeSkaters.append(node) }
         }
-        for player in awayDefPair {
-            let node = SkaterNode(player: player, teamColors: awayColors, teamIndex: 1)
+        for player in oppDefPair {
+            let node = SkaterNode(player: player, teamColors: opponentColors, teamIndex: 1)
             rink.addChild(node)
-            awaySkaters.append(node)
+            if isPlayerHome { awaySkaters.append(node) } else { homeSkaters.append(node) }
         }
-        if let goalie = awayGoalie {
-            let node = SkaterNode(player: goalie, teamColors: awayColors, teamIndex: 1)
+        if let goalie = oppGoalie {
+            let node = SkaterNode(player: goalie, teamColors: opponentColors, teamIndex: 1)
             rink.addChild(node)
-            awaySkaters.append(node)
+            if isPlayerHome { awaySkaters.append(node) } else { homeSkaters.append(node) }
         }
     }
 
@@ -327,16 +331,30 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         periodClockLabel.text = formatClock(periodClock)
         periodClockLabel.fontColor = .white
         showMessage("PERIOD \(period)") { [weak self] in
-            self?.startFaceoff(nextPossession: .playerOffense)
+            self?.startFaceoff()
         }
     }
 
-    private func startFaceoff(nextPossession: PossessionState = .playerOffense) {
+    private func startFaceoff(at faceoffPosition: CGPoint = .zero, nextPossession: PossessionState? = nil) {
         gameState = .faceoff
-        positionForFaceoff()
+        positionForFaceoff(at: faceoffPosition)
+
+        // Determine faceoff winner based on center faceoff stats
+        let resolvedPossession: PossessionState
+        if let forced = nextPossession {
+            resolvedPossession = forced
+        } else {
+            let playerCenter = playerSkaters.first(where: { $0.posType == .center })
+            let opponentCenter = opponentSkaters.first(where: { $0.posType == .center })
+            let playerFO = Double(playerCenter?.playerStats.faceoff ?? 50)
+            let opponentFO = Double(opponentCenter?.playerStats.faceoff ?? 50)
+            let playerWinChance = playerFO / (playerFO + opponentFO)
+            resolvedPossession = Double.random(in: 0...1) < playerWinChance
+                ? .playerOffense : .playerDefense
+        }
 
         showMessage("FACE OFF", duration: 0.8) { [weak self] in
-            self?.startPlaying(initialPossession: nextPossession)
+            self?.startPlaying(initialPossession: resolvedPossession)
         }
     }
 
@@ -591,7 +609,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
                 scorerID: scorer.playerID,
                 assist1ID: teammates.first?.playerID,
                 assist2ID: nil,
-                teamIndex: byPlayerTeam ? (isPlayerHome ? 0 : 1) : (isPlayerHome ? 1 : 0),
+                teamIndex: byPlayerTeam ? 0 : 1,
                 isPowerPlay: false
             ))
         }
@@ -624,14 +642,16 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
 
         showMessage(msgText, duration: 2.5) { [weak self] in
             guard let self = self else { return }
-            self.puck.resetToCenter()
 
             // Overtime is sudden death: game ends immediately on goal
             if self.period > GameConfig.periodsPerGame {
+                self.puck.resetToCenter()
                 self.endGame()
             } else if self.periodClock <= 0 {
+                self.puck.resetToCenter()
                 self.endPeriod()
             } else {
+                // Center ice faceoff after goal
                 self.startFaceoff(nextPossession: nextPossession)
             }
         }
@@ -704,7 +724,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         if puck.isPass {
             let all = playerSkaters + opponentSkaters
             if let receiver = puck.checkPassArrival(skaters: all) {
-                let playerTeamIndex = isPlayerHome ? 0 : 1
+                let playerTeamIndex = 0  // player team is always teamIndex 0
                 puck.attachTo(receiver)
 
                 if receiver.teamIndex == playerTeamIndex {
@@ -718,13 +738,11 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
                     }
                 } else {
                     // Opponent intercepted!
-                    showMessage("INTERCEPTED!", duration: 0.5)
                     switchToDefense()
                     return
                 }
             } else if !puck.isPass {
                 // Pass timed out
-                showMessage("BAD PASS!", duration: 0.5)
                 enterLoosePuck()
                 return
             }
@@ -740,8 +758,6 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         if puck.hasBeenShot {
             if puck.timeSinceShot > 2.5 {
                 puck.hasBeenShot = false
-                let msgs = ["Wide!", "Shot missed!", "Off the post!", "High and wide!"]
-                showMessage(msgs.randomElement()!, duration: 0.5)
                 enterLoosePuck()
             }
             return
@@ -750,7 +766,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         // Body check by AI defenders
         if puckProtectionTimer <= 0,
            let carrier = puck.carriedBy,
-           carrier.teamIndex == (isPlayerHome ? 0 : 1),
+           carrier.teamIndex == 0,
            currentTime - lastBodyCheckTime > bodyCheckInterval {
             lastBodyCheckTime = currentTime
 
@@ -768,7 +784,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         // Joystick movement (move carrier)
         if joystickDisplacement != .zero,
            let carrier = puck.carriedBy,
-           carrier.teamIndex == (isPlayerHome ? 0 : 1) {
+           carrier.teamIndex == 0 {
             let moveTarget = CGPoint(
                 x: carrier.position.x + joystickDisplacement.x * 80,
                 y: carrier.position.y + joystickDisplacement.y * 80
@@ -776,7 +792,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             carrier.moveToward(moveTarget)
         } else if joystickDisplacement == .zero,
                   let carrier = puck.carriedBy,
-                  carrier.teamIndex == (isPlayerHome ? 0 : 1),
+                  carrier.teamIndex == 0,
                   joystickTouch == nil {
             carrier.stopMoving()
         }
@@ -793,7 +809,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
     // MARK: - Defense Update
     private func updatePlayerDefense(currentTime: TimeInterval, dt: TimeInterval) {
         let puckVel = puck.physicsBody?.velocity ?? .zero
-        let playerTeamIndex = isPlayerHome ? 0 : 1
+        let playerTeamIndex = 0  // player team is always teamIndex 0
 
         // AI: player's team defends (excluding player-controlled defender)
         ai.updateDefenders(
@@ -831,7 +847,6 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
 
                 if receiver.teamIndex == playerTeamIndex {
                     // Player team intercepted opponent pass!
-                    showMessage("INTERCEPTED!", duration: 0.5)
                     switchToOffense()
                     return
                 } else {
@@ -850,7 +865,6 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         if puck.hasBeenShot {
             if puck.timeSinceShot > 2.5 {
                 puck.hasBeenShot = false
-                showMessage("Wide!", duration: 0.5)
                 enterLoosePuck()
             }
             return
@@ -878,7 +892,6 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
                     startCameraShake(intensity: 2, duration: 0.2)
                 } else {
                     defender.playHitAnimation()
-                    showMessage("CHECK!", duration: 0.3)
                 }
             }
         }
@@ -916,8 +929,12 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         // Guard against race condition: physics contact may have already resolved possession
         guard puck.isLoose else { return }
 
+        // Check if goalie should cover the puck
+        checkGoalieCover()
+        guard puck.isLoose else { return }
+
         loosePuckTimer -= dt
-        let playerTeamIndex = isPlayerHome ? 0 : 1
+        let playerTeamIndex = 0  // player team is always teamIndex 0
         let puckVel = puck.physicsBody?.velocity ?? .zero
 
         // Both teams chase the puck
@@ -955,7 +972,6 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
                 loosePuckTimer = 0
 
                 if skater.teamIndex == playerTeamIndex {
-                    showMessage("RECOVERED!", duration: 0.4)
                     switchToOffense()
                 } else {
                     switchToDefense()
@@ -986,13 +1002,18 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
     private func executeOpponentAction(_ action: OpponentAction, carrier: SkaterNode) {
         switch action {
         case .none:
-            // Default: carrier continues skating toward goal
+            // Default: carrier skates toward goal, but hold position if already close
             let goalMouth = !attackingRight ? rink.rightGoalMouth : rink.leftGoalMouth
-            let target = CGPoint(
-                x: goalMouth.x + (!attackingRight ? -80 : 80),
-                y: carrier.position.y * 0.9
-            )
-            carrier.moveToward(target)
+            let distToGoal = carrier.position.distance(to: goalMouth)
+            if distToGoal < 80 {
+                carrier.stopMoving()
+            } else {
+                let target = CGPoint(
+                    x: goalMouth.x + (!attackingRight ? -80 : 80),
+                    y: carrier.position.y * 0.9
+                )
+                carrier.moveToward(target)
+            }
 
         case .skate(let target):
             carrier.moveToward(target)
@@ -1003,7 +1024,6 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
 
         case .shoot(let target, let power):
             puck.shoot(toward: target, power: power)  // shoot() calls playShootAnimation() on the carrier
-            showMessage("SHOT!", duration: 0.3)
         }
     }
 
@@ -1023,7 +1043,6 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         )
 
         for skater in playerSkaters { skater.hidePassTarget() }
-        showMessage("LOOSE PUCK!", duration: 0.5)
         enterLoosePuck()
     }
 
@@ -1159,16 +1178,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
 
                 switch possession {
                 case .playerOffense:
-                    // Tap teammate = pass
-                    for skater in playerSkaters where !skater.posType.isGoalie && !skater.hasPuck {
-                        let dist = rinkLocation.distance(to: skater.position)
-                        if dist < TouchConfig.tapRadius {
-                            performPass(to: skater)
-                            actionTouch = nil
-                            actionTouchState = .none
-                            return
-                        }
-                    }
+                    // Pass is now resolved on touchesEnded (tap detection)
                     actionTouchState = .holding(start: sceneLocation, time: touch.timestamp)
 
                 case .playerDefense:
@@ -1292,8 +1302,23 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         case .holding(let start, let startTime):
             let dist = sceneLocation.distance(to: start)
             let duration = endTime - startTime
-            guard dist > TouchConfig.swipeMinDistance && duration < TouchConfig.swipeMaxDuration else { return }
 
+            let isSwipe = dist > TouchConfig.swipeMinDistance && duration < TouchConfig.swipeMaxDuration
+
+            if !isSwipe {
+                // TAP — check if tapping a teammate to pass
+                let rinkLocation = convert(sceneLocation, to: rink)
+                for skater in playerSkaters where !skater.posType.isGoalie && !skater.hasPuck {
+                    let tapDist = rinkLocation.distance(to: skater.position)
+                    if tapDist < TouchConfig.tapRadius {
+                        performPass(to: skater)
+                        return
+                    }
+                }
+                return  // tap on empty space — do nothing
+            }
+
+            // SWIPE — shoot or deke
             let swipeVector = sceneLocation - start
             let swipeAngle = atan2(swipeVector.y, swipeVector.x)
 
@@ -1339,7 +1364,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
 
     private func performPass(to target: SkaterNode) {
         guard let carrier = puck.carriedBy,
-              carrier.teamIndex == (isPlayerHome ? 0 : 1) else { return }
+              carrier.teamIndex == 0 else { return }
 
         carrier.isSelected = false
 
@@ -1350,21 +1375,22 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
             x: (carrier.position.x + target.position.x) / 2,
             y: (carrier.position.y + target.position.y) / 2
         )
+        let teammates = playerSkaters.filter { !$0.posType.isGoalie }
+
         for defender in opponentSkaters where !defender.posType.isGoalie {
             let defDist = defender.position.distance(to: midpoint)
             if defDist < 25 && Double.random(in: 0...1) > passChance {
-                puck.pass(toward: midpoint, targetID: target.playerID)
+                puck.pass(toward: midpoint, targetID: target.playerID, teammates: teammates)
                 run(SKAction.wait(forDuration: 0.3)) { [weak self] in
                     guard let self = self, self.gameState == .playing else { return }
                     self.puck.clearPassState()
                     self.enterLoosePuck()
-                    self.showMessage("INTERCEPTED!", duration: 0.5)
                 }
                 return
             }
         }
 
-        puck.pass(toward: target.position, targetID: target.playerID)
+        puck.pass(toward: target.position, targetID: target.playerID, teammates: teammates)
     }
 
     private func performShot(toward target: CGPoint, power: CGFloat) {
@@ -1372,7 +1398,6 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
 
         for skater in playerSkaters { skater.hidePassTarget() }
         shootIndicator.alpha = 0
-        showMessage("SHOT!", duration: 0.4)
         puck.shoot(toward: target, power: power)  // shoot() calls playShootAnimation() on the carrier
         selectedSkater?.isSelected = false
     }
@@ -1381,7 +1406,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
         guard defenseCheckCooldown <= 0,
               let defender = selectedDefender,
               let carrier = puck.carriedBy,
-              carrier.teamIndex != (isPlayerHome ? 0 : 1) else { return }
+              carrier.teamIndex != 0 else { return }
 
         defenseCheckCooldown = 0.8
 
@@ -1401,14 +1426,13 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
 
         guard gameState == .playing else { return }
 
-        let playerTeamIndex = isPlayerHome ? 0 : 1
+        let playerTeamIndex = 0  // player team is always teamIndex 0
 
         // Puck hits boards while shot -> loose puck
         if puck.hasBeenShot {
             if (a == PhysicsCategory.puck && b == PhysicsCategory.boards) ||
                (a == PhysicsCategory.boards && b == PhysicsCategory.puck) {
                 puck.hasBeenShot = false
-                showMessage("Off the boards!", duration: 0.5)
                 enterLoosePuck()
                 return
             }
@@ -1433,20 +1457,14 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
                     puck.physicsBody?.velocity = .zero
                     puck.physicsBody?.isDynamic = false
 
-                    let saveMsgs = ["SAVED!", "Great save!", "Glove save!", "Pad save!"]
-                    showMessage(saveMsgs.randomElement()!, duration: 0.6) { [weak self] in
+                    let faceoffPos = self.nearestFaceoffDot(to: self.puck.position)
+                    run(SKAction.wait(forDuration: 0.6)) { [weak self] in
                         guard let self = self, self.gameState == .playing else { return }
                         self.puck.physicsBody?.isDynamic = true
-
-                        // Give puck to the goalie's team
                         if skater.teamIndex == playerTeamIndex {
-                            // Player's goalie saved it → player offense
-                            self.puck.resetToCenter()
-                            self.startFaceoff(nextPossession: .playerOffense)
+                            self.startFaceoff(at: faceoffPos, nextPossession: .playerOffense)
                         } else {
-                            // Opponent goalie saved it → opponent gets puck
-                            self.puck.resetToCenter()
-                            self.startFaceoff(nextPossession: .playerDefense)
+                            self.startFaceoff(at: faceoffPos, nextPossession: .playerDefense)
                         }
                     }
                     return
@@ -1464,9 +1482,13 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
 
             if goalNode?.name == "rightGoal" {
                 puck.hasBeenShot = false
+                puck.physicsBody?.velocity = .zero
+                puck.physicsBody?.isDynamic = false
                 handleGoalScored(byPlayerTeam: attackingRight)
             } else if goalNode?.name == "leftGoal" {
                 puck.hasBeenShot = false
+                puck.physicsBody?.velocity = .zero
+                puck.physicsBody?.isDynamic = false
                 handleGoalScored(byPlayerTeam: !attackingRight)
             }
             return
@@ -1488,7 +1510,6 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
                 puckProtectionTimer = 0.8
 
                 if skater.teamIndex == playerTeamIndex {
-                    showMessage("RECOVERED!", duration: 0.4)
                     switchToOffense()
                 } else {
                     switchToDefense()
@@ -1501,43 +1522,137 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
     // MARK: - POSITIONING
     // =========================================================================
 
-    private func positionForFaceoff() {
+    private func positionForFaceoff(at faceoffPosition: CGPoint = .zero) {
         let hw = rink.rinkWidth / 2
         let hh = rink.rinkHeight / 2
+        let fx = faceoffPosition.x
+        let fy = faceoffPosition.y
 
-        let homePositions: [(Position, CGPoint)] = [
-            (.center,       CGPoint(x: -15, y: 0)),
-            (.leftWing,     CGPoint(x: -50, y: hh * 0.4)),
-            (.rightWing,    CGPoint(x: -50, y: -hh * 0.4)),
-            (.leftDefense,  CGPoint(x: -hw * 0.4, y: hh * 0.3)),
-            (.rightDefense, CGPoint(x: -hw * 0.4, y: -hh * 0.3)),
+        // Player team always on left (attacking right), opponent on right
+        let leftPositions: [(Position, CGPoint)] = [
+            (.center,       CGPoint(x: fx - 15, y: fy)),
+            (.leftWing,     CGPoint(x: fx - 50, y: fy + hh * 0.15)),
+            (.rightWing,    CGPoint(x: fx - 50, y: fy - hh * 0.15)),
+            (.leftDefense,  CGPoint(x: fx - 80, y: fy + hh * 0.12)),
+            (.rightDefense, CGPoint(x: fx - 80, y: fy - hh * 0.12)),
             (.goalie,       CGPoint(x: -hw + GameConfig.goalDepth + 20, y: 0)),
         ]
 
-        for (pos, point) in homePositions {
-            if let skater = homeSkaters.first(where: { $0.posType == pos }) {
-                skater.position = point
-                skater.stopMoving()
-            }
-        }
-
-        let awayPositions: [(Position, CGPoint)] = [
-            (.center,       CGPoint(x: 15, y: 0)),
-            (.leftWing,     CGPoint(x: 50, y: -hh * 0.4)),
-            (.rightWing,    CGPoint(x: 50, y: hh * 0.4)),
-            (.leftDefense,  CGPoint(x: hw * 0.4, y: -hh * 0.3)),
-            (.rightDefense, CGPoint(x: hw * 0.4, y: hh * 0.3)),
+        let rightPositions: [(Position, CGPoint)] = [
+            (.center,       CGPoint(x: fx + 15, y: fy)),
+            (.leftWing,     CGPoint(x: fx + 50, y: fy - hh * 0.15)),
+            (.rightWing,    CGPoint(x: fx + 50, y: fy + hh * 0.15)),
+            (.leftDefense,  CGPoint(x: fx + 80, y: fy - hh * 0.12)),
+            (.rightDefense, CGPoint(x: fx + 80, y: fy + hh * 0.12)),
             (.goalie,       CGPoint(x: hw - GameConfig.goalDepth - 20, y: 0)),
         ]
 
-        for (pos, point) in awayPositions {
-            if let skater = awaySkaters.first(where: { $0.posType == pos }) {
-                skater.position = point
+        let playerPositions = leftPositions
+        let opponentPositions = rightPositions
+
+        for (pos, point) in playerPositions {
+            if let skater = playerSkaters.first(where: { $0.posType == pos }) {
+                skater.position = CGPoint(
+                    x: max(-hw + 20, min(hw - 20, point.x)),
+                    y: max(-hh + 20, min(hh - 20, point.y))
+                )
                 skater.stopMoving()
             }
         }
 
-        puck.resetToCenter()
+        for (pos, point) in opponentPositions {
+            if let skater = opponentSkaters.first(where: { $0.posType == pos }) {
+                skater.position = CGPoint(
+                    x: max(-hw + 20, min(hw - 20, point.x)),
+                    y: max(-hh + 20, min(hh - 20, point.y))
+                )
+                skater.stopMoving()
+            }
+        }
+
+        // Position puck at faceoff location
+        puck.detach()
+        puck.clearPassState()
+        puck.position = faceoffPosition
+        puck.physicsBody?.velocity = .zero
+        puck.physicsBody?.isDynamic = true
+        puck.hasBeenShot = false
+        puck.timeSinceShot = 0
+    }
+
+    // MARK: - Goalie Covers Puck
+    /// When puck is loose and slow near the crease, the goalie skates to it and covers it.
+    private var goalieCoveringPuck: Bool = false
+    private var goalieSkatingToPuck: SkaterNode? = nil
+
+    private func checkGoalieCover() {
+        guard puck.isLoose, !puck.hasBeenShot, !puck.isPass, !goalieCoveringPuck else { return }
+
+        let puckSpeed = hypot(puck.physicsBody?.velocity.dx ?? 0, puck.physicsBody?.velocity.dy ?? 0)
+        guard puckSpeed < 80 else {
+            goalieSkatingToPuck = nil
+            return
+        }
+
+        // Find a goalie whose crease contains the puck
+        let allGoalies = allSkaters.filter { $0.posType.isGoalie }
+        var nearGoalie: SkaterNode? = nil
+        for goalie in allGoalies {
+            let dist = goalie.position.distance(to: puck.position)
+            if dist < GameConfig.creaseRadius {
+                nearGoalie = goalie
+                break
+            }
+        }
+
+        guard let goalie = nearGoalie else {
+            goalieSkatingToPuck = nil
+            return
+        }
+
+        // Goalie skates toward the puck
+        goalieSkatingToPuck = goalie
+        let coverRadius: CGFloat = 12
+        let dist = goalie.position.distance(to: puck.position)
+
+        if dist > coverRadius {
+            // Move goalie toward the puck
+            goalie.moveToward(puck.position, speed: goalie.maxSpeed * 0.6)
+            return
+        }
+
+        // Goalie has reached the puck — check it's still loose
+        guard puck.isLoose else { return }
+
+        // Cover it
+        goalieCoveringPuck = true
+        goalieSkatingToPuck = nil
+        goalie.stopMoving()
+        puck.physicsBody?.velocity = .zero
+        puck.physicsBody?.isDynamic = false
+        puck.position = goalie.position
+        isLoosePuck = false
+        loosePuckTimer = 0
+
+        let faceoffPos = nearestFaceoffDot(to: goalie.position)
+        let nextPossession: PossessionState = goalie.teamIndex == 0
+            ? .playerOffense : .playerDefense
+
+        run(SKAction.wait(forDuration: 1.5)) { [weak self] in
+            guard let self = self, self.gameState == .playing else { return }
+            self.puck.physicsBody?.isDynamic = true
+            self.goalieCoveringPuck = false
+            self.startFaceoff(at: faceoffPos, nextPossession: nextPossession)
+        }
+    }
+
+    /// Find the nearest faceoff dot to a position (excluding center ice for zone faceoffs)
+    private func nearestFaceoffDot(to position: CGPoint) -> CGPoint {
+        let dots = rink.faceoffDots
+        let zoneDots = Array(dots.dropFirst())  // exclude center ice
+        return zoneDots.min(by: {
+            $0.distance(to: position) < $1.distance(to: position)
+        }) ?? .zero
     }
 
     // =========================================================================
@@ -1632,7 +1747,7 @@ class GameplayScene: BaseScene, SKPhysicsContactDelegate {
     private func updateShootIndicator() {
         guard possession == .playerOffense,
               let carrier = puck.carriedBy,
-              carrier.teamIndex == (isPlayerHome ? 0 : 1),
+              carrier.teamIndex == 0,
               !puck.hasBeenShot else {
             shootIndicator.alpha = 0
             return
